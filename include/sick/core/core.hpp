@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sick/core/logger.hpp"
+#include "sick/core/scheduler.hpp"
 
 #include <Windows.h>
 
@@ -21,6 +22,7 @@ namespace sick::core
     private:
         HMODULE m_module{};
         Logger m_logger;
+        Scheduler m_scheduler;
         std::atomic_bool m_running{false};
     };
 }
