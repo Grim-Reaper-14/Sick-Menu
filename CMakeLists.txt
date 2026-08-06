@@ -7,6 +7,8 @@ add_library(SickMenu SHARED
     src/core/application.cpp
     src/core/core.cpp
     src/core/logger.cpp
+    src/core/scheduler.cpp
+    src/memory/module.cpp
 )
 
 target_include_directories(SickMenu PRIVATE include)
