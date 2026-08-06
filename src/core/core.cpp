@@ -1,9 +1,11 @@
 #include "sick/core/core.hpp"
+#include "sick/core/build_info.hpp"
 
 #include <Windows.h>
 
 #include <chrono>
 #include <filesystem>
+#include <format>
 #include <thread>
 
 namespace sick::core
@@ -26,7 +28,17 @@ namespace sick::core
         if (!m_logger.open(log_path))
             return false;
 
+        const HMODULE host_module = GetModuleHandleW(nullptr);
+        const BuildInfo build_info(host_module);
+        if (!build_info.valid())
+        {
+            m_logger.error("Unable to read host executable version information");
+            m_logger.close();
+            return false;
+        }
+
         m_logger.info("Sick-Menu core initialized");
+        m_logger.info(std::format("Host executable version: {}", build_info.version().to_string()));
         m_logger.info("Press END to unload");
         m_running.store(true, std::memory_order_release);
         return true;
