@@ -8,12 +8,15 @@ add_library(SickMenu SHARED
     src/core/core.cpp
     src/core/logger.cpp
     src/core/scheduler.cpp
+    src/core/build_info.cpp
     src/memory/module.cpp
+    src/memory/pattern_scanner.cpp
 )
 
 target_include_directories(SickMenu PRIVATE include)
 target_compile_features(SickMenu PRIVATE cxx_std_20)
 target_compile_definitions(SickMenu PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+target_link_libraries(SickMenu PRIVATE Version)
 
 if(MSVC)
     target_compile_options(SickMenu PRIVATE /W4 /permissive- /EHsc)
