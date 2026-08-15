@@ -85,4 +85,3 @@ ctest --test-dir build
 
 The tests use mock native handlers/providers and do not require GTA to be running.
 
-This project targets local/single-player mod development. Do not use it to bypass multiplayer protections or interfere with other players.
