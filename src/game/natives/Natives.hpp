@@ -9,6 +9,7 @@ namespace Sick::Game::Natives
     {
         inline constexpr NativeHash PLAYER_PED_ID = 0xD80958FC74E988A6ULL;
         inline constexpr NativeHash PLAYER_ID = 0x4F8644AF03D0E0D6ULL;
+        inline constexpr NativeHash DOES_ENTITY_EXIST = 0x7239B21A38F536BAULL;
         inline constexpr NativeHash SET_ENTITY_INVINCIBLE = 0x3882114BDE571AD4ULL;
     }
 
@@ -27,6 +28,11 @@ namespace Sick::Game::Natives
 
     namespace ENTITY
     {
+        [[nodiscard]] inline bool DOES_ENTITY_EXIST(Entity entity) noexcept
+        {
+            return NativeInvoker::Call<bool>(Hashes::DOES_ENTITY_EXIST, entity);
+        }
+
         inline void SET_ENTITY_INVINCIBLE(Entity entity, bool toggle) noexcept
         {
             NativeInvoker::Call<void>(Hashes::SET_ENTITY_INVINCIBLE, entity, toggle);

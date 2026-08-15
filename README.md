@@ -1,45 +1,91 @@
 # Sick-Menu
 
-Sick Menu is being built around a small, typed GTA native backend with its own call context, handler cache, resolver abstraction, and generated-wrapper-friendly API.
+Sick Menu targets **Grand Theft Auto V Enhanced** and is being structured as a layered C++ backend rather than putting gameplay logic directly in the menu renderer.
 
-## Native backend
+## Backend layout
 
-Core files live under `src/game/natives/`:
+```text
+UI / Lua
+   |
+Features
+   |
+Services
+   |
+Typed Natives
+   |
+NativeInvoker
+   |
+NativeResolver + diagnostics + registry
+   |
+Enhanced NativeTable
+   |
+GTA V Enhanced host adapter
+```
 
-- `NativeContext.hpp` - ABI-shaped call context, argument/return storage, and vector fix-up support.
-- `NativeResolver.*` - thread-safe handler resolution, caching, and per-native overrides.
-- `NativeInvoker.hpp` - typed `Call`, `TryCall`, and availability checks.
-- `Natives.hpp` - typed namespace wrappers. This starts with a few verified natives and is intended to be expanded/generated.
-- `NativeBackend.hpp` - convenience include for the whole native layer.
+### Enhanced adapter
 
-The host/in-process game adapter supplies the actual handler resolver:
+`src/game/enhanced/` owns edition/build-specific integration:
+
+- `BuildManager` stores the Enhanced build ID supplied by the host.
+- `NativeTable` owns the Enhanced native lookup callback and optional build-aware hash mapper.
+- `EnhancedGame` coordinates startup, shutdown, and game-thread scheduler ticks.
+
+The low-level lookup implementation is intentionally injected by the in-process host. This keeps signatures, build mappings, and native-table discovery out of feature code.
+
+### Native subsystem
+
+`src/game/natives/` contains:
+
+- ABI-shaped `NativeCallContext` and isolated argument/return storage.
+- Typed `NativeInvoker` calls.
+- Thread-safe `NativeResolver` handler cache and overrides.
+- `NativeRegistry` metadata lookup by hash or name.
+- `NativeDiagnostics` call success/failure counters.
+- `NativeSystem` lifecycle management.
+- Typed wrappers in `Natives.hpp`, designed to be generator-friendly.
+
+Example feature-side usage:
 
 ```cpp
-#include "game/natives/NativeBackend.hpp"
+#include "game/services/PlayerService.hpp"
 
+Sick::Game::PlayerService player;
+player.SetInvincible(true);
+```
+
+### Scheduler
+
+`GameScheduler` queues gameplay jobs separately from UI/render callbacks. The in-process Enhanced host calls `EnhancedGame::Tick()` from the appropriate game execution context.
+
+```cpp
+Sick::Game::GameScheduler::Get().Queue([]
+{
+    Sick::Game::PlayerService{}.SetInvincible(true);
+});
+```
+
+## Host integration boundary
+
+The host supplies a build ID and native lookup callback:
+
+```cpp
 using namespace Sick::Game;
+using namespace Sick::Game::Enhanced;
 using namespace Sick::Game::Natives;
 
-NativeHandler ResolveFromGame(NativeHash hash)
+NativeHandler LookupEnhancedNative(NativeHash hash, BuildId build)
 {
-    // Wire this to Sick's GTA-version-specific native table adapter.
+    // Resolve through Sick's GTA V Enhanced native-table adapter.
     return nullptr;
 }
 
-void InitializeNativeBackend()
+bool StartBackend(BuildId build)
 {
-    NativeResolver::Get().SetResolver(&ResolveFromGame);
+    return EnhancedGame::Initialize(build, &LookupEnhancedNative);
 }
 ```
 
-Feature code stays clean and typed:
-
-```cpp
-const auto ped = PLAYER::PLAYER_PED_ID();
-ENTITY::SET_ENTITY_INVINCIBLE(ped, true);
-```
-
-The resolver boundary is intentional: GTA build/version lookup belongs in a separate adapter so the public Sick native API does not need to change when the game updates.
+An optional hash-mapper callback can be supplied when a particular Enhanced build needs remapping without changing the public wrappers.
 
 ## Tests
 
@@ -49,6 +95,6 @@ cmake --build build
 ctest --test-dir build
 ```
 
-The native backend tests use mock handlers and do not require GTA to be running.
+Tests use mock native handlers and do not require GTA to be running.
 
 This project targets local/single-player mod development. Do not use it to bypass multiplayer protections or interfere with other players.

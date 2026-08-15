@@ -1,5 +1,6 @@
 #pragma once
 
+#include "NativeDiagnostics.hpp"
 #include "NativeResolver.hpp"
 
 #include <optional>
@@ -19,6 +20,7 @@ namespace Sick::Game::Natives
 
             if (!pushed)
             {
+                NativeDiagnostics::RecordCall(false);
                 if constexpr (!std::is_void_v<Return>)
                     return Return{};
                 else
@@ -28,6 +30,7 @@ namespace Sick::Game::Natives
             const auto handler = NativeResolver::Get().Resolve(hash);
             if (!handler)
             {
+                NativeDiagnostics::RecordCall(false);
                 if constexpr (!std::is_void_v<Return>)
                     return Return{};
                 else
@@ -36,6 +39,7 @@ namespace Sick::Game::Natives
 
             handler(&frame);
             frame.FixVectors();
+            NativeDiagnostics::RecordCall(true);
 
             if constexpr (!std::is_void_v<Return>)
             {
@@ -55,14 +59,21 @@ namespace Sick::Game::Natives
             NativeCallFrame frame;
             const bool pushed = (frame.Push(std::forward<Args>(args)) && ... && true);
             if (!pushed)
+            {
+                NativeDiagnostics::RecordCall(false);
                 return std::nullopt;
+            }
 
             const auto handler = NativeResolver::Get().Resolve(hash);
             if (!handler)
+            {
+                NativeDiagnostics::RecordCall(false);
                 return std::nullopt;
+            }
 
             handler(&frame);
             frame.FixVectors();
+            NativeDiagnostics::RecordCall(true);
             return frame.GetResult<Return>();
         }
 
@@ -72,14 +83,21 @@ namespace Sick::Game::Natives
             NativeCallFrame frame;
             const bool pushed = (frame.Push(std::forward<Args>(args)) && ... && true);
             if (!pushed)
+            {
+                NativeDiagnostics::RecordCall(false);
                 return false;
+            }
 
             const auto handler = NativeResolver::Get().Resolve(hash);
             if (!handler)
+            {
+                NativeDiagnostics::RecordCall(false);
                 return false;
+            }
 
             handler(&frame);
             frame.FixVectors();
+            NativeDiagnostics::RecordCall(true);
             return true;
         }
 

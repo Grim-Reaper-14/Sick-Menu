@@ -2,7 +2,14 @@ cmake_minimum_required(VERSION 3.20)
 project(SickMenu LANGUAGES CXX)
 
 add_library(sick_native STATIC
+    src/game/enhanced/BuildManager.cpp
+    src/game/enhanced/EnhancedGame.cpp
+    src/game/enhanced/NativeTable.cpp
+    src/game/natives/NativeRegistry.cpp
     src/game/natives/NativeResolver.cpp
+    src/game/natives/NativeSystem.cpp
+    src/game/scheduler/GameScheduler.cpp
+    src/game/services/PlayerService.cpp
 )
 
 target_include_directories(sick_native PUBLIC src)
@@ -16,9 +23,14 @@ if(SICK_NATIVE_BUILD_TESTS)
     add_executable(sick_native_tests
         tests/native_invoker_tests.cpp
     )
-
     target_link_libraries(sick_native_tests PRIVATE sick_native)
     target_compile_features(sick_native_tests PRIVATE cxx_std_20)
-
     add_test(NAME sick_native_tests COMMAND sick_native_tests)
+
+    add_executable(sick_enhanced_backend_tests
+        tests/enhanced_backend_tests.cpp
+    )
+    target_link_libraries(sick_enhanced_backend_tests PRIVATE sick_native)
+    target_compile_features(sick_enhanced_backend_tests PRIVATE cxx_std_20)
+    add_test(NAME sick_enhanced_backend_tests COMMAND sick_enhanced_backend_tests)
 endif()
