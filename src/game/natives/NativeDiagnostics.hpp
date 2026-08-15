@@ -42,8 +42,8 @@ namespace Sick::Game::Natives
         }
 
     private:
-        static inline std::atomic_uint64_t s_Calls{};
-        static inline std::atomic_uint64_t s_Succeeded{};
-        static inline std::atomic_uint64_t s_Failed{};
+        static inline std::atomic<std::uint64_t> s_Calls{};
+        static inline std::atomic<std::uint64_t> s_Succeeded{};
+        static inline std::atomic<std::uint64_t> s_Failed{};
     };
 }

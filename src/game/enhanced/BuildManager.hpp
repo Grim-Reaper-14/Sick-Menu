@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <string_view>
 
@@ -17,6 +18,6 @@ namespace Sick::Game::Enhanced
         [[nodiscard]] static std::string_view EditionName() noexcept;
 
     private:
-        static inline BuildId s_Build{UnknownBuild};
+        static inline std::atomic<BuildId> s_Build{UnknownBuild};
     };
 }

@@ -2,6 +2,7 @@
 #include "Natives.hpp"
 
 #include <mutex>
+#include <utility>
 
 namespace Sick::Game::Natives
 {

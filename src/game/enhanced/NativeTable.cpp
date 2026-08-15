@@ -23,14 +23,21 @@ namespace Sick::Game::Enhanced
 
     Natives::NativeHandler NativeTable::Resolve(NativeHash hash) const noexcept
     {
-        std::scoped_lock lock(m_Mutex);
+        LookupFn lookup{};
+        HashMapperFn mapper{};
 
-        if (!m_Lookup || !BuildManager::Supported())
-            return nullptr;
+        {
+            std::scoped_lock lock(m_Mutex);
+            lookup = m_Lookup;
+            mapper = m_Mapper;
+        }
 
         const auto build = BuildManager::Current();
-        const auto mappedHash = m_Mapper ? m_Mapper(hash, build) : hash;
-        return m_Lookup(mappedHash, build);
+        if (!lookup || build == UnknownBuild)
+            return nullptr;
+
+        const auto mappedHash = mapper ? mapper(hash, build) : hash;
+        return lookup(mappedHash, build);
     }
 
     void NativeTable::Reset() noexcept
