@@ -2,8 +2,12 @@
 
 #include "game/enhanced/BuildManager.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
+#include "game/enhanced/NativeBootstrap.hpp"
 #include "game/enhanced/NativeTable.hpp"
+#include "game/enhanced/ScriptGlobal.hpp"
 #include "game/natives/NativeBackend.hpp"
+#include "game/natives/NativeHandlerTable.hpp"
+#include "game/natives/generated/NativeIndex.hpp"
 #include "game/scheduler/GameScheduler.hpp"
 
 namespace Reaper
@@ -15,15 +19,18 @@ namespace Reaper
     using Vehicle = Sick::Game::Vehicle;
     using Object = Sick::Game::Object;
     using Player = Sick::Game::Player;
+    using ScriptGlobal = Sick::Game::Enhanced::ScriptGlobal;
 
     namespace PLAYER = Sick::Game::Natives::PLAYER;
     namespace ENTITY = Sick::Game::Natives::ENTITY;
 
     namespace Native
     {
+        using NativeIndex = Sick::Game::Natives::NativeIndex;
         using Context = Sick::Game::Natives::NativeCallContext;
         using CallFrame = Sick::Game::Natives::NativeCallFrame;
         using Handler = Sick::Game::Natives::NativeHandler;
+        using HandlerTable = Sick::Game::Natives::NativeHandlerTable;
         using Invoker = Sick::Game::Natives::NativeInvoker;
         using Resolver = Sick::Game::Natives::NativeResolver;
         using Registry = Sick::Game::Natives::NativeRegistry;
@@ -38,6 +45,7 @@ namespace Reaper
         inline constexpr BuildId UnknownBuild = Sick::Game::Enhanced::UnknownBuild;
 
         using BuildManager = Sick::Game::Enhanced::BuildManager;
+        using NativeBootstrap = Sick::Game::Enhanced::NativeBootstrap;
         using NativeTable = Sick::Game::Enhanced::NativeTable;
         using Game = Sick::Game::Enhanced::EnhancedGame;
     }

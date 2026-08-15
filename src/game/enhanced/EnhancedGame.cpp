@@ -13,9 +13,24 @@ namespace Sick::Game::Enhanced
         return Natives::NativeSystem::Initialize(build, lookup, mapper);
     }
 
+    bool EnhancedGame::InitializeIndexed(
+        BuildId build,
+        NativeBootstrap::ProviderFn provider,
+        NativeBootstrap::HashMapperFn mapper) noexcept
+    {
+        GameScheduler::Get().Clear();
+        return Natives::NativeSystem::InitializeIndexed(build, provider, mapper);
+    }
+
+    void EnhancedGame::BindScriptGlobalResolver(ScriptGlobal::ResolverFn resolver) noexcept
+    {
+        ScriptGlobal::BindResolver(resolver);
+    }
+
     void EnhancedGame::Shutdown() noexcept
     {
         GameScheduler::Get().Clear();
+        ScriptGlobal::ResetResolver();
         Natives::NativeSystem::Shutdown();
     }
 

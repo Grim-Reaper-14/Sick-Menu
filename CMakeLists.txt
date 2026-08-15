@@ -4,7 +4,10 @@ project(SickMenu LANGUAGES CXX)
 add_library(sick_native STATIC
     src/game/enhanced/BuildManager.cpp
     src/game/enhanced/EnhancedGame.cpp
+    src/game/enhanced/NativeBootstrap.cpp
     src/game/enhanced/NativeTable.cpp
+    src/game/enhanced/ScriptGlobal.cpp
+    src/game/natives/NativeHandlerTable.cpp
     src/game/natives/NativeRegistry.cpp
     src/game/natives/NativeResolver.cpp
     src/game/natives/NativeSystem.cpp
@@ -33,4 +36,11 @@ if(SICK_NATIVE_BUILD_TESTS)
     target_link_libraries(sick_enhanced_backend_tests PRIVATE sick_native)
     target_compile_features(sick_enhanced_backend_tests PRIVATE cxx_std_20)
     add_test(NAME sick_enhanced_backend_tests COMMAND sick_enhanced_backend_tests)
+
+    add_executable(reaper_indexed_backend_tests
+        tests/reaper_indexed_backend_tests.cpp
+    )
+    target_link_libraries(reaper_indexed_backend_tests PRIVATE sick_native)
+    target_compile_features(reaper_indexed_backend_tests PRIVATE cxx_std_20)
+    add_test(NAME reaper_indexed_backend_tests COMMAND reaper_indexed_backend_tests)
 endif()

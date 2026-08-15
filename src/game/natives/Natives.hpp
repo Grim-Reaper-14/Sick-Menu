@@ -2,27 +2,29 @@
 
 #include "NativeInvoker.hpp"
 #include "NativeTypes.hpp"
+#include "generated/NativeHashes.hpp"
+#include "generated/NativeIndex.hpp"
 
 namespace Sick::Game::Natives
 {
     namespace Hashes
     {
-        inline constexpr NativeHash PLAYER_PED_ID = 0xD80958FC74E988A6ULL;
-        inline constexpr NativeHash PLAYER_ID = 0x4F8644AF03D0E0D6ULL;
-        inline constexpr NativeHash DOES_ENTITY_EXIST = 0x7239B21A38F536BAULL;
-        inline constexpr NativeHash SET_ENTITY_INVINCIBLE = 0x3882114BDE571AD4ULL;
+        inline constexpr NativeHash PLAYER_PED_ID = Generated::HashFor(NativeIndex::PLAYER_PED_ID);
+        inline constexpr NativeHash PLAYER_ID = Generated::HashFor(NativeIndex::PLAYER_ID);
+        inline constexpr NativeHash DOES_ENTITY_EXIST = Generated::HashFor(NativeIndex::DOES_ENTITY_EXIST);
+        inline constexpr NativeHash SET_ENTITY_INVINCIBLE = Generated::HashFor(NativeIndex::SET_ENTITY_INVINCIBLE);
     }
 
     namespace PLAYER
     {
         [[nodiscard]] inline Ped PLAYER_PED_ID() noexcept
         {
-            return NativeInvoker::Call<Ped>(Hashes::PLAYER_PED_ID);
+            return NativeInvoker::Invoke<NativeIndex::PLAYER_PED_ID, Ped, false>();
         }
 
         [[nodiscard]] inline Player PLAYER_ID() noexcept
         {
-            return NativeInvoker::Call<Player>(Hashes::PLAYER_ID);
+            return NativeInvoker::Invoke<NativeIndex::PLAYER_ID, Player, false>();
         }
     }
 
@@ -30,12 +32,12 @@ namespace Sick::Game::Natives
     {
         [[nodiscard]] inline bool DOES_ENTITY_EXIST(Entity entity) noexcept
         {
-            return NativeInvoker::Call<bool>(Hashes::DOES_ENTITY_EXIST, entity);
+            return NativeInvoker::Invoke<NativeIndex::DOES_ENTITY_EXIST, bool, false>(entity);
         }
 
         inline void SET_ENTITY_INVINCIBLE(Entity entity, bool toggle) noexcept
         {
-            NativeInvoker::Call<void>(Hashes::SET_ENTITY_INVINCIBLE, entity, toggle);
+            NativeInvoker::Invoke<NativeIndex::SET_ENTITY_INVINCIBLE, void, false>(entity, toggle);
         }
     }
 }

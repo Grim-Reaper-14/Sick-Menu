@@ -1,91 +1,79 @@
 # Sick-Menu
 
-Sick Menu targets **Grand Theft Auto V Enhanced** and is being structured as a layered C++ backend rather than putting gameplay logic directly in the menu renderer.
+Sick Menu targets **Grand Theft Auto V Enhanced** and exposes its gameplay API through the public `Reaper` namespace.
 
-## Backend layout
+## Reaper native backend
+
+Feature code stays small and typed:
+
+```cpp
+#include "Reaper.hpp"
+
+const Reaper::Ped ped = Reaper::PLAYER::PLAYER_PED_ID();
+Reaper::ENTITY::SET_ENTITY_INVINCIBLE(ped, true);
+```
+
+The preferred Enhanced path preloads native handlers once and then invokes them by generated `NativeIndex`:
 
 ```text
-UI / Lua
-   |
-Features
-   |
-Services
-   |
-Typed Natives
-   |
-NativeInvoker
-   |
-NativeResolver + diagnostics + registry
-   |
-Enhanced NativeTable
-   |
-GTA V Enhanced host adapter
+UI / Lua / Features
+        |
+        v
+Reaper::PLAYER / ENTITY / ...
+        |
+        v
+NativeInvoker::Invoke<NativeIndex>()
+        |
+        v
+NativeHandlerTable[index]
+        |
+        v
+Enhanced native handler
 ```
 
-### Enhanced adapter
-
-`src/game/enhanced/` owns edition/build-specific integration:
-
-- `BuildManager` stores the Enhanced build ID supplied by the host.
-- `NativeTable` owns the Enhanced native lookup callback and optional build-aware hash mapper.
-- `EnhancedGame` coordinates startup, shutdown, and game-thread scheduler ticks.
-
-The low-level lookup implementation is intentionally injected by the in-process host. This keeps signatures, build mappings, and native-table discovery out of feature code.
-
-### Native subsystem
-
-`src/game/natives/` contains:
-
-- ABI-shaped `NativeCallContext` and isolated argument/return storage.
-- Typed `NativeInvoker` calls.
-- Thread-safe `NativeResolver` handler cache and overrides.
-- `NativeRegistry` metadata lookup by hash or name.
-- `NativeDiagnostics` call success/failure counters.
-- `NativeSystem` lifecycle management.
-- Typed wrappers in `Natives.hpp`, designed to be generator-friendly.
-
-Example feature-side usage:
+`NativeBootstrap` receives a host-provided native provider and warms the indexed handler table during startup. The menu does not perform a hash lookup for every normal typed native call. A raw hash resolver remains available for diagnostics and developer tooling.
 
 ```cpp
-#include "game/services/PlayerService.hpp"
-
-Sick::Game::PlayerService player;
-player.SetInvincible(true);
-```
-
-### Scheduler
-
-`GameScheduler` queues gameplay jobs separately from UI/render callbacks. The in-process Enhanced host calls `EnhancedGame::Tick()` from the appropriate game execution context.
-
-```cpp
-Sick::Game::GameScheduler::Get().Queue([]
+Reaper::Native::Handler ResolveNative(
+    Reaper::NativeHash hash,
+    Reaper::Enhanced::BuildId build)
 {
-    Sick::Game::PlayerService{}.SetInvincible(true);
-});
-```
-
-## Host integration boundary
-
-The host supplies a build ID and native lookup callback:
-
-```cpp
-using namespace Sick::Game;
-using namespace Sick::Game::Enhanced;
-using namespace Sick::Game::Natives;
-
-NativeHandler LookupEnhancedNative(NativeHash hash, BuildId build)
-{
-    // Resolve through Sick's GTA V Enhanced native-table adapter.
+    // Supply this from the allowed GTA V Enhanced host/runtime adapter.
     return nullptr;
 }
 
-bool StartBackend(BuildId build)
+bool StartBackend(Reaper::Enhanced::BuildId build)
 {
-    return EnhancedGame::Initialize(build, &LookupEnhancedNative);
+    return Reaper::Enhanced::Game::InitializeIndexed(
+        build,
+        &ResolveNative
+    );
 }
 ```
 
-An optional hash-mapper callback can be supplied when a particular Enhanced build needs remapping without changing the public wrappers.
+The generated-native layer currently starts with a small verified set and is structured for a generator to expand `NativeIndex.hpp`, `NativeHashes.hpp`, metadata, and typed namespace wrappers together.
+
+## Script globals
+
+`Reaper::ScriptGlobal` provides `At()` traversal and typed `As<T>()` access while keeping address resolution behind a host callback:
+
+```cpp
+Reaper::Enhanced::Game::BindScriptGlobalResolver(&ResolveScriptGlobal);
+
+auto value = Reaper::ScriptGlobal(123456)
+    .At(5)
+    .As<std::int64_t&>();
+```
+
+This keeps game-version-specific global resolution outside feature code.
+
+## Backend components
+
+- `src/game/enhanced/` - Enhanced build integration, indexed bootstrap, script-global facade, and lifecycle.
+- `src/game/natives/` - call context, invoker, handler table, resolver, registry, diagnostics, and generated native IDs/hashes.
+- `src/game/scheduler/` - gameplay job queue separated from UI/render callbacks.
+- `src/game/services/` - higher-level gameplay services built on typed natives.
+- `src/Reaper.hpp` - public API facade.
 
 ## Tests
 
@@ -95,6 +83,6 @@ cmake --build build
 ctest --test-dir build
 ```
 
-Tests use mock native handlers and do not require GTA to be running.
+The tests use mock native handlers/providers and do not require GTA to be running.
 
 This project targets local/single-player mod development. Do not use it to bypass multiplayer protections or interfere with other players.

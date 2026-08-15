@@ -7,6 +7,11 @@ namespace
     {
         return Sick::Game::Enhanced::NativeTable::Get().Resolve(hash);
     }
+
+    Sick::Game::Natives::NativeHandler ResolveIndexedNative(Sick::Game::NativeHash hash)
+    {
+        return Sick::Game::Enhanced::NativeBootstrap::Get().Resolve(hash);
+    }
 }
 
 namespace Sick::Game::Natives
@@ -33,18 +38,43 @@ namespace Sick::Game::Natives
         return true;
     }
 
+    bool NativeSystem::InitializeIndexed(
+        Enhanced::BuildId build,
+        Enhanced::NativeBootstrap::ProviderFn provider,
+        Enhanced::NativeBootstrap::HashMapperFn mapper) noexcept
+    {
+        Shutdown();
+
+        Enhanced::BuildManager::SetBuild(build);
+        NativeRegistry::Get().RegisterDefaults();
+        NativeDiagnostics::Reset();
+
+        if (!Enhanced::NativeBootstrap::Get().Initialize(provider, mapper))
+        {
+            Shutdown();
+            return false;
+        }
+
+        NativeResolver::Get().SetResolver(&ResolveIndexedNative);
+        return true;
+    }
+
     void NativeSystem::Shutdown() noexcept
     {
         NativeResolver::Get().Reset();
         NativeRegistry::Get().Clear();
         NativeDiagnostics::Reset();
+        Enhanced::NativeBootstrap::Get().Shutdown();
         Enhanced::NativeTable::Get().Reset();
         Enhanced::BuildManager::SetBuild(Enhanced::UnknownBuild);
     }
 
     bool NativeSystem::Ready() noexcept
     {
-        return Enhanced::NativeTable::Get().Ready() && NativeResolver::Get().IsReady();
+        const bool backendReady =
+            Enhanced::NativeBootstrap::Get().Ready() || Enhanced::NativeTable::Get().Ready();
+
+        return backendReady && NativeResolver::Get().IsReady();
     }
 
     NativeStats NativeSystem::Stats() noexcept
