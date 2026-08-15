@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <mutex>
@@ -19,10 +21,14 @@ namespace Sick::Game
         void Clear() noexcept;
         [[nodiscard]] std::size_t Pending() const noexcept;
 
+        void SetSlowJobThreshold(std::chrono::milliseconds threshold) noexcept;
+        [[nodiscard]] std::chrono::milliseconds SlowJobThreshold() const noexcept;
+
     private:
         GameScheduler() = default;
 
         mutable std::mutex m_Mutex;
         std::queue<Job> m_Jobs;
+        std::atomic<std::int64_t> m_SlowJobThresholdMs{100};
     };
 }

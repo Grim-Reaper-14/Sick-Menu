@@ -53,6 +53,75 @@ bool StartBackend(Reaper::Enhanced::BuildId build)
 
 The generated-native layer currently starts with a small verified set and is structured for a generator to expand `NativeIndex.hpp`, `NativeHashes.hpp`, metadata, and typed namespace wrappers together.
 
+## Reaper observability
+
+The backend includes an asynchronous structured logging and diagnostics pipeline rather than a simple console logger.
+
+```cpp
+Reaper::Log::LoggerConfig logging;
+logging.minimumLevel = Reaper::Log::Level::Debug;
+logging.filePath = "logs/reaper.log";
+logging.rotateBytes = 16 * 1024 * 1024;
+logging.rotateFiles = 6;
+
+Reaper::Log::Initialize(logging);
+Reaper::Crash::Install();
+Reaper::Health::Start();
+
+REAPER_INFO("Enhanced", "Backend started on build {}", build);
+REAPER_WARN_EVERY(std::chrono::seconds{5}, "Native", "Native provider is degraded");
+```
+
+The logger records sequence numbers, wall/monotonic time, severity, category, event ID, thread identity/name, correlation/span IDs, source location, messages, and structured fields. Producers write into a bounded asynchronous queue; file/console/debugger I/O is handled away from normal gameplay work. Lower-priority records are discarded first under pressure, error records are preserved preferentially, critical records use an emergency synchronous path, and queue drops are exposed through logger statistics.
+
+Built-in diagnostics include:
+
+- rotating text or JSONL file sinks, console sink, Windows debugger sink, memory/ring sink, and an always-available recent-event buffer;
+- thread-local structured context and correlation IDs;
+- rate limiting (`REAPER_WARN_EVERY` / `REAPER_WARN_ONCE`);
+- burst/anomaly detection for repeated warning/error events, tagged directly on structured records;
+- RAII tracing (`REAPER_TRACE_SCOPE` / `REAPER_WATCH_SCOPE`) with execution-budget warnings;
+- counters, gauges, and distribution metrics;
+- subsystem heartbeat monitoring with stall/recovery events;
+- scheduler timing, slow-job detection, and scheduled-job exception reporting;
+- native call failure / argument-overflow reporting with rate limiting;
+- native bootstrap completeness metrics and events;
+- script-global resolution failure detection;
+- assertion/verification diagnostics with stack capture (`REAPER_ASSERT` / `REAPER_VERIFY`);
+- crash reports containing logger state, recent events, metrics, and a raw stack trace;
+- Windows minidump output through DbgHelp when crash reporting is installed.
+
+Structured context follows work automatically on the current thread:
+
+```cpp
+Reaper::CorrelationScope request{42};
+Reaper::LogContext context{
+    Reaper::Log::MakeField("feature", "Teleport"),
+    Reaper::Log::MakeField("script", "teleport.lua")
+};
+
+REAPER_ERROR("Teleport", "Destination validation failed");
+```
+
+Long-running work can be watched without manually writing timers:
+
+```cpp
+{
+    REAPER_WATCH_SCOPE("Streaming", "LoadModel", std::chrono::milliseconds{50});
+    // work
+}
+```
+
+Crash reporting is intentionally explicit so the host controls when process-level handlers are installed:
+
+```cpp
+Reaper::Crash::Install({
+    .directory = "logs/crashes",
+    .recentEvents = 256,
+    .writeMiniDump = true
+});
+```
+
 ## Script globals
 
 `Reaper::ScriptGlobal` provides `At()` traversal and typed `As<T>()` access while keeping address resolution behind a host callback:
@@ -65,13 +134,15 @@ auto value = Reaper::ScriptGlobal(123456)
     .As<std::int64_t&>();
 ```
 
-This keeps game-version-specific global resolution outside feature code.
+This keeps game-version-specific global resolution outside feature code. Failed global resolution is also surfaced through the observability pipeline when logging is enabled.
 
 ## Backend components
 
+- `src/core/logging/` - asynchronous logger, structured records, anomaly detection, context, rate limiting, and sinks.
+- `src/core/diagnostics/` - assertions, tracing, metrics, health monitoring, stack capture, and crash reporting.
 - `src/game/enhanced/` - Enhanced build integration, indexed bootstrap, script-global facade, and lifecycle.
 - `src/game/natives/` - call context, invoker, handler table, resolver, registry, diagnostics, and generated native IDs/hashes.
-- `src/game/scheduler/` - gameplay job queue separated from UI/render callbacks.
+- `src/game/scheduler/` - gameplay job queue with timing and exception diagnostics.
 - `src/game/services/` - higher-level gameplay services built on typed natives.
 - `src/Reaper.hpp` - public API facade.
 

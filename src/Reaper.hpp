@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/diagnostics/Observability.hpp"
 #include "game/enhanced/BuildManager.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/enhanced/NativeBootstrap.hpp"
@@ -23,6 +24,16 @@ namespace Reaper
 
     namespace PLAYER = Sick::Game::Natives::PLAYER;
     namespace ENTITY = Sick::Game::Natives::ENTITY;
+
+    namespace Log = Sick::Core::Logging;
+    namespace Trace = Sick::Core::Trace;
+    namespace Metrics = Sick::Core::Metrics;
+    namespace Health = Sick::Core::Health;
+    namespace Crash = Sick::Core::Crash;
+    namespace Diagnostics = Sick::Core::Diagnostics;
+
+    using LogContext = Sick::Core::Logging::ScopedContext;
+    using CorrelationScope = Sick::Core::Logging::ScopedCorrelation;
 
     namespace Native
     {
