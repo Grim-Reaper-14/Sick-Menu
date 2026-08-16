@@ -151,7 +151,32 @@ namespace Sick::Runtime
             WaitForSingleObject(m_FenceEvent, INFINITE);
     }
 
-    void Dx12Renderer::Render()
+    void Dx12Renderer::PollKeyboardFallback()
+    {
+        const auto pressed = [](int virtualKey) {
+            return (GetAsyncKeyState(virtualKey) & 1) != 0;
+        };
+
+        auto& controller = m_Menu.Controller();
+        if (pressed(VK_F4))
+            controller.Handle(Ui::MenuInput::Toggle);
+        if (!controller.IsOpen())
+            return;
+        if (pressed(VK_UP))
+            controller.Handle(Ui::MenuInput::Up);
+        if (pressed(VK_DOWN))
+            controller.Handle(Ui::MenuInput::Down);
+        if (pressed(VK_LEFT))
+            controller.Handle(Ui::MenuInput::Left);
+        if (pressed(VK_RIGHT))
+            controller.Handle(Ui::MenuInput::Right);
+        if (pressed(VK_RETURN))
+            controller.Handle(Ui::MenuInput::Select);
+        if (pressed(VK_BACK))
+            controller.Handle(Ui::MenuInput::Back);
+    }
+
+    void Dx12Renderer::Render(bool pollKeyboardFallback)
     {
         if (!m_Ready)
             return;
@@ -163,9 +188,18 @@ namespace Sick::Runtime
         ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-        Ui::ImGuiMenuKeys keys{};
-        keys.toggle = ImGuiKey_F4;
-        Sick::Ui::ImGuiMenuBackend::Render(m_Menu, keys);
+        if (pollKeyboardFallback)
+        {
+            PollKeyboardFallback();
+            const auto displaySize = ImGui::GetIO().DisplaySize;
+            Ui::ImGuiMenuBackend::Submit(m_Menu.Draw({displaySize.x, displaySize.y}));
+        }
+        else
+        {
+            Ui::ImGuiMenuKeys keys{};
+            keys.toggle = ImGuiKey_F4;
+            Sick::Ui::ImGuiMenuBackend::Render(m_Menu, keys);
+        }
         ImGui::Render();
 
         D3D12_RESOURCE_BARRIER barrier{};

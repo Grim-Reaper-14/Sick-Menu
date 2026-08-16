@@ -11,6 +11,7 @@
 #include <array>
 #include <chrono>
 #include <cwchar>
+#include <string>
 #include <thread>
 
 namespace
@@ -65,6 +66,19 @@ namespace
         EnumWindows(&FindProcessWindow, reinterpret_cast<LPARAM>(&search));
         return search.result;
     }
+
+    bool CreateAndLogHook(const char* name, void* target, void* detour, void** original)
+    {
+        const auto status = MH_CreateHook(target, detour, original);
+        if (status == MH_OK)
+        {
+            Sick::Runtime::Log::Write(std::string{name} + " hook created");
+            return true;
+        }
+        Sick::Runtime::Log::Write(
+            std::string{name} + " hook creation failed, MinHook status=" + std::to_string(static_cast<int>(status)));
+        return false;
+    }
 }
 
 namespace Sick::Runtime
@@ -108,14 +122,11 @@ namespace Sick::Runtime
         if (!m_InitNativeTablesAddress)
             return false;
 
-        // These are the Enhanced crossmap values for the four generated
-        // NativeIndex entries. InitNativeTables replaces them in place with
-        // executable handlers owned by GTA.
         std::array<std::uint64_t, Game::Natives::NativeCount> entries{
-            0x259BE71D8A81D4FAULL, // PLAYER_PED_ID
-            0x566C977EEAE1C0D1ULL, // PLAYER_ID
-            0xF3A281B1AA86DBA9ULL, // DOES_ENTITY_EXIST
-            0xD25E9BDC14A0B649ULL, // SET_ENTITY_INVINCIBLE
+            0x259BE71D8A81D4FAULL,
+            0x566C977EEAE1C0D1ULL,
+            0xF3A281B1AA86DBA9ULL,
+            0xD25E9BDC14A0B649ULL,
         };
         Game::Enhanced::LiveScriptProgram program{};
         program.nativeCount = static_cast<std::uint32_t>(entries.size());
@@ -144,30 +155,49 @@ namespace Sick::Runtime
         void** vtable = *reinterpret_cast<void***>(*m_SwapChainAddress);
         if (!vtable)
             return false;
-        if (MH_Initialize() != MH_OK)
+
+        const auto initStatus = MH_Initialize();
+        if (initStatus != MH_OK)
         {
-            Log::Write("MinHook initialization failed");
+            Log::Write("MinHook initialization failed, status=" + std::to_string(static_cast<int>(initStatus)));
             return false;
         }
         m_MinHookInitialized = true;
+        Log::Write("MinHook initialized");
 
-        if (MH_CreateHook(vtable[8], &PresentHook, reinterpret_cast<void**>(&m_OriginalPresent)) != MH_OK ||
-            MH_CreateHook(vtable[13], &ResizeBuffersHook, reinterpret_cast<void**>(&m_OriginalResizeBuffers)) != MH_OK ||
-            MH_CreateHook(m_RunScriptThreadsAddress, &RunScriptThreadsHook, reinterpret_cast<void**>(&m_OriginalRunScriptThreads)) != MH_OK ||
-            MH_EnableHook(MH_ALL_HOOKS) != MH_OK)
+        if (!CreateAndLogHook("Present", vtable[8], reinterpret_cast<void*>(&PresentHook), reinterpret_cast<void**>(&m_OriginalPresent)) ||
+            !CreateAndLogHook("ResizeBuffers", vtable[13], reinterpret_cast<void*>(&ResizeBuffersHook), reinterpret_cast<void**>(&m_OriginalResizeBuffers)) ||
+            !CreateAndLogHook("RunScriptThreads", m_RunScriptThreadsAddress, reinterpret_cast<void*>(&RunScriptThreadsHook), reinterpret_cast<void**>(&m_OriginalRunScriptThreads)))
+            return false;
+
+        const auto enableStatus = MH_EnableHook(MH_ALL_HOOKS);
+        if (enableStatus != MH_OK)
         {
-            Log::Write("one or more MinHook hooks failed to install");
+            Log::Write("MinHook enable failed, status=" + std::to_string(static_cast<int>(enableStatus)));
             return false;
         }
+        Log::Write("Present, ResizeBuffers, and RunScriptThreads hooks enabled");
 
         SetLastError(ERROR_SUCCESS);
-        m_OriginalWindowProc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(
+        const auto previous = SetWindowLongPtrW(
             m_Window,
             GWLP_WNDPROC,
-            reinterpret_cast<LONG_PTR>(&WindowProc)));
-        if (!m_OriginalWindowProc && GetLastError() != ERROR_SUCCESS)
-            return false;
-        Log::Write("Present, ResizeBuffers, RunScriptThreads, and WndProc hooks installed");
+            reinterpret_cast<LONG_PTR>(&WindowProc));
+        const auto windowProcError = GetLastError();
+        if (!previous && windowProcError != ERROR_SUCCESS)
+        {
+            m_OriginalWindowProc = nullptr;
+            m_WndProcInstalled = false;
+            Log::Write(
+                "WndProc subclass failed, Windows error=" + std::to_string(static_cast<unsigned long>(windowProcError)) +
+                "; continuing with render-thread keyboard polling fallback");
+        }
+        else
+        {
+            m_OriginalWindowProc = reinterpret_cast<WNDPROC>(previous);
+            m_WndProcInstalled = true;
+            Log::Write("WndProc subclass installed");
+        }
         return true;
     }
 
@@ -215,7 +245,7 @@ namespace Sick::Runtime
             std::scoped_lock lock(runtime->m_RenderMutex);
             if (!runtime->m_Renderer.Ready())
                 static_cast<void>(runtime->m_Renderer.Initialize(swapChain, *runtime->m_CommandQueueAddress, runtime->m_Window));
-            runtime->m_Renderer.Render();
+            runtime->m_Renderer.Render(!runtime->m_WndProcInstalled);
         }
         return runtime && runtime->m_OriginalPresent
             ? runtime->m_OriginalPresent(swapChain, syncInterval, flags)
@@ -274,7 +304,7 @@ namespace Sick::Runtime
             std::scoped_lock lock(runtime->m_RenderMutex);
             static_cast<void>(runtime->m_Renderer.HandleWindowMessage(window, message, wparam, lparam));
         }
-        return runtime && runtime->m_OriginalWindowProc
+        return runtime && runtime->m_WndProcInstalled && runtime->m_OriginalWindowProc
             ? CallWindowProcW(runtime->m_OriginalWindowProc, window, message, wparam, lparam)
             : DefWindowProcW(window, message, wparam, lparam);
     }
@@ -285,8 +315,21 @@ namespace Sick::Runtime
         m_StopRequested.store(true, std::memory_order_release);
         if (m_MinHookInitialized)
             static_cast<void>(MH_DisableHook(MH_ALL_HOOKS));
-        if (m_OriginalWindowProc && m_Window && IsWindow(m_Window))
-            SetWindowLongPtrW(m_Window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_OriginalWindowProc));
+        if (m_WndProcInstalled && m_OriginalWindowProc && m_Window && IsWindow(m_Window))
+        {
+            SetLastError(ERROR_SUCCESS);
+            const auto result = SetWindowLongPtrW(
+                m_Window,
+                GWLP_WNDPROC,
+                reinterpret_cast<LONG_PTR>(m_OriginalWindowProc));
+            const auto error = GetLastError();
+            if (!result && error != ERROR_SUCCESS)
+                Log::Write("WndProc restore failed, Windows error=" + std::to_string(static_cast<unsigned long>(error)));
+            else
+                Log::Write("WndProc restored");
+        }
+        m_WndProcInstalled = false;
+        m_OriginalWindowProc = nullptr;
         {
             std::scoped_lock lock(m_RenderMutex);
             m_Renderer.Shutdown();

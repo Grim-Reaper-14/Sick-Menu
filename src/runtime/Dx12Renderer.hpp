@@ -16,7 +16,7 @@ namespace Sick::Runtime
     public:
         Dx12Renderer();
         bool Initialize(IDXGISwapChain* swapChain, ID3D12CommandQueue* queue, HWND window);
-        void Render();
+        void Render(bool pollKeyboardFallback = false);
         void BeforeResize();
         bool AfterResize();
         void Shutdown();
@@ -35,6 +35,7 @@ namespace Sick::Runtime
         bool CreateRenderTargets();
         void WaitForFrame(Frame& frame);
         void WaitForGpu();
+        void PollKeyboardFallback();
 
         HWND m_Window{};
         bool m_Ready{};
