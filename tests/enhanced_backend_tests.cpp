@@ -65,6 +65,12 @@ int main()
     assert(playerPed.has_value());
     assert(playerPed->hash == Hashes::PLAYER_PED_ID);
 
+    const auto idleStats = NativeSystem::Stats();
+    EnhancedGame::Tick();
+    const auto afterIdleStats = NativeSystem::Stats();
+    assert(afterIdleStats.calls == idleStats.calls);
+    assert(afterIdleStats.failed == idleStats.failed);
+
     PlayerService player;
     assert(player.LocalPed() == 99);
     assert(player.Exists());

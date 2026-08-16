@@ -30,6 +30,9 @@ namespace Sick::Game
     void PlayerService::Tick() const noexcept
     {
         const bool requested = g_InvincibleRequested.load(std::memory_order_acquire);
+        if (!requested && g_InvinciblePed == 0)
+            return;
+
         const auto ped = LocalPed();
 
         if (g_InvinciblePed != 0 && (g_InvinciblePed != ped || !requested))
