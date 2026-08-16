@@ -1,4 +1,5 @@
 #include "GtaRuntime.hpp"
+#include "RuntimeLog.hpp"
 
 #include <chrono>
 #include <thread>
@@ -9,6 +10,8 @@ namespace
     DWORD WINAPI Bootstrap(void* parameter)
     {
         const auto module = static_cast<HMODULE>(parameter);
+        Sick::Runtime::Log::Initialize(module);
+        Sick::Runtime::Log::Write("bootstrap thread started");
         Sick::Runtime::GtaRuntime runtime;
         if (runtime.Initialize())
         {
@@ -17,6 +20,11 @@ namespace
             runtime.RequestStop();
             runtime.Shutdown();
         }
+        else
+        {
+            Sick::Runtime::Log::Write("runtime initialization failed; DLL will unload");
+        }
+        Sick::Runtime::Log::Shutdown();
         FreeLibraryAndExitThread(module, 0);
         return 0;
     }

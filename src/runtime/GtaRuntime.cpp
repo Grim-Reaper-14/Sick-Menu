@@ -1,6 +1,7 @@
 #include "GtaRuntime.hpp"
 
 #include "PatternScanner.hpp"
+#include "RuntimeLog.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/enhanced/EnhancedScriptHost.hpp"
 #include "game/natives/NativeContext.hpp"
@@ -28,13 +29,6 @@ namespace
 namespace
 {
     constexpr std::wstring_view GameExecutable = L"GTA5_Enhanced.exe";
-
-    void DebugMessage(const wchar_t* message)
-    {
-        OutputDebugStringW(L"[SickMenu] ");
-        OutputDebugStringW(message);
-        OutputDebugStringW(L"\n");
-    }
 
     [[nodiscard]] bool IsEnhancedProcess()
     {
@@ -77,9 +71,10 @@ namespace Sick::Runtime
 {
     bool GtaRuntime::ResolveGamePointers()
     {
+        Log::Write("scanning GTA5_Enhanced.exe patterns");
         if (!IsEnhancedProcess())
         {
-            DebugMessage(L"refusing to initialize outside GTA5_Enhanced.exe");
+            Log::Write("refusing to initialize outside GTA5_Enhanced.exe");
             return false;
         }
 
@@ -102,11 +97,13 @@ namespace Sick::Runtime
         m_RunScriptThreadsAddress = reinterpret_cast<void*>(*runMatch - 0xA);
         m_InitNativeTablesAddress = reinterpret_cast<void*>(*nativeMatch - 0x2A);
         m_Window = FindGameWindow();
+        Log::Write(m_Window ? "GTA window and core patterns resolved" : "GTA window was not found");
         return m_CommandQueueAddress && m_SwapChainAddress && m_RunScriptThreadsAddress && m_Window;
     }
 
     bool GtaRuntime::InitializeNativeBackend()
     {
+        Log::Write("initializing native backend through InitNativeTables");
         using InitNativeTablesFn = void (*)(Game::Enhanced::LiveScriptProgram*);
         if (!m_InitNativeTablesAddress)
             return false;
@@ -133,9 +130,11 @@ namespace Sick::Runtime
         }
 
         constexpr Game::Enhanced::BuildId ReferenceEnhancedBuild = 115813;
-        return Game::Enhanced::EnhancedGame::InitializeIndexed(
+        const bool initialized = Game::Enhanced::EnhancedGame::InitializeIndexed(
             ReferenceEnhancedBuild,
             &ResolveRuntimeNative);
+        Log::Write(initialized ? "native backend ready" : "native backend initialization failed");
+        return initialized;
     }
 
     bool GtaRuntime::InstallHooks()
@@ -146,14 +145,20 @@ namespace Sick::Runtime
         if (!vtable)
             return false;
         if (MH_Initialize() != MH_OK)
+        {
+            Log::Write("MinHook initialization failed");
             return false;
+        }
         m_MinHookInitialized = true;
 
         if (MH_CreateHook(vtable[8], &PresentHook, reinterpret_cast<void**>(&m_OriginalPresent)) != MH_OK ||
             MH_CreateHook(vtable[13], &ResizeBuffersHook, reinterpret_cast<void**>(&m_OriginalResizeBuffers)) != MH_OK ||
             MH_CreateHook(m_RunScriptThreadsAddress, &RunScriptThreadsHook, reinterpret_cast<void**>(&m_OriginalRunScriptThreads)) != MH_OK ||
             MH_EnableHook(MH_ALL_HOOKS) != MH_OK)
+        {
+            Log::Write("one or more MinHook hooks failed to install");
             return false;
+        }
 
         SetLastError(ERROR_SUCCESS);
         m_OriginalWindowProc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(
@@ -162,6 +167,7 @@ namespace Sick::Runtime
             reinterpret_cast<LONG_PTR>(&WindowProc)));
         if (!m_OriginalWindowProc && GetLastError() != ERROR_SUCCESS)
             return false;
+        Log::Write("Present, ResizeBuffers, RunScriptThreads, and WndProc hooks installed");
         return true;
     }
 
@@ -181,19 +187,23 @@ namespace Sick::Runtime
 
         if (!m_SwapChainAddress || !m_CommandQueueAddress || !*m_SwapChainAddress || !*m_CommandQueueAddress)
         {
-            DebugMessage(L"GTA Enhanced swap chain/window discovery failed");
+            Log::Write("GTA Enhanced swap chain/window discovery failed");
             s_Instance = nullptr;
             return false;
         }
 
-        static_cast<void>(Game::Enhanced::EnhancedGame::InitializeScriptHost());
+        Log::Write("initializing Enhanced script host");
+        const bool scriptHostReady = Game::Enhanced::EnhancedGame::InitializeScriptHost();
+        Log::Write(scriptHostReady
+            ? "Enhanced script host ready"
+            : "Enhanced script host not ready yet; game-thread hook will retry");
         if (!InstallHooks())
         {
-            DebugMessage(L"hook installation failed");
+            Log::Write("hook installation failed");
             Shutdown();
             return false;
         }
-        DebugMessage(L"DLL initialized; press Insert for the menu and End to unload");
+        Log::Write("DLL initialized; press F4 for the menu and End to unload");
         return true;
     }
 
@@ -271,6 +281,7 @@ namespace Sick::Runtime
 
     void GtaRuntime::Shutdown()
     {
+        Log::Write("runtime shutdown requested");
         m_StopRequested.store(true, std::memory_order_release);
         if (m_MinHookInitialized)
             static_cast<void>(MH_DisableHook(MH_ALL_HOOKS));

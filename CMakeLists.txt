@@ -73,6 +73,7 @@ if(SICK_MENU_BUILD_DLL)
         src/runtime/Dx12Renderer.cpp
         src/runtime/GtaRuntime.cpp
         src/runtime/PatternScanner.cpp
+        src/runtime/RuntimeLog.cpp
     )
     target_include_directories(SickMenu PRIVATE src)
     target_compile_features(SickMenu PRIVATE cxx_std_20)

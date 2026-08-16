@@ -2,6 +2,7 @@
 
 #include "ui/menu/ImGuiMenuBackend.hpp"
 #include "game/scripts/ScriptFunctionCatalog.hpp"
+#include "RuntimeLog.hpp"
 
 #include <backends/imgui_impl_dx12.h>
 #include <backends/imgui_impl_win32.h>
@@ -31,12 +32,16 @@ namespace Sick::Runtime
 
     bool Dx12Renderer::Initialize(IDXGISwapChain* swapChain, ID3D12CommandQueue* queue, HWND window)
     {
+        Log::Write("initializing D3D12 renderer");
         if (m_Ready || !swapChain || !queue || !window)
             return m_Ready;
 
         if (FAILED(swapChain->QueryInterface(IID_PPV_ARGS(&m_SwapChain))) ||
             FAILED(m_SwapChain->GetDevice(IID_PPV_ARGS(&m_Device))))
+        {
+            Log::Write("failed to query IDXGISwapChain3 or ID3D12Device");
             return false;
+        }
 
         m_Queue = queue;
         m_Window = window;
@@ -107,6 +112,7 @@ namespace Sick::Runtime
             return false;
 
         m_Ready = true;
+        Log::Write("D3D12 renderer ready; press F4 to open the menu");
         return true;
     }
 
@@ -157,7 +163,9 @@ namespace Sick::Runtime
         ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-        Sick::Ui::ImGuiMenuBackend::Render(m_Menu);
+        Ui::ImGuiMenuKeys keys{};
+        keys.toggle = ImGuiKey_F4;
+        Sick::Ui::ImGuiMenuBackend::Render(m_Menu, keys);
         ImGui::Render();
 
         D3D12_RESOURCE_BARRIER barrier{};
@@ -209,6 +217,7 @@ namespace Sick::Runtime
 
     void Dx12Renderer::Shutdown()
     {
+        Log::Write("shutting down D3D12 renderer");
         if (m_Ready)
         {
             WaitForGpu();

@@ -130,8 +130,9 @@ tick.
 
 The native bridge resolves the generated Enhanced handlers through GTA's
 `InitNativeTables` routine on the game thread. The Script VM bridge retries
-until the live script tables are available. Press `Insert` to open/close the
-menu and `End` to cleanly remove hooks and unload the DLL. `Regular Option`
+until the live script tables are available. The DLL opens a diagnostic console
+and writes the same messages to `SickMenu.log` beside the DLL. Press `F4` to
+open/close the menu and `End` to cleanly remove hooks and unload it. `Regular Option`
 runs a read-only Script VM smoke test and reports the result to the debugger.
 
 ## Menu UI
