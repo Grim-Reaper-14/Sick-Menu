@@ -15,6 +15,7 @@ add_library(sick_native STATIC
     src/core/memory/PatternScanner.cpp
     src/game/enhanced/BuildManager.cpp
     src/game/enhanced/EnhancedGame.cpp
+    src/game/enhanced/EnhancedPointers.cpp
     src/game/enhanced/NativeBootstrap.cpp
     src/game/enhanced/NativeCrossmap.cpp
     src/game/enhanced/NativeTable.cpp
@@ -48,6 +49,13 @@ if(SICK_NATIVE_BUILD_TESTS)
         target_compile_features(hook_manager_tests PRIVATE cxx_std_20)
         add_test(NAME hook_manager_tests COMMAND hook_manager_tests)
     endif()
+
+    add_executable(enhanced_pointers_tests
+        tests/enhanced_pointers_tests.cpp
+    )
+    target_link_libraries(enhanced_pointers_tests PRIVATE sick_native)
+    target_compile_features(enhanced_pointers_tests PRIVATE cxx_std_20)
+    add_test(NAME enhanced_pointers_tests COMMAND enhanced_pointers_tests)
 
     add_executable(memory_manager_tests
         tests/memory_manager_tests.cpp

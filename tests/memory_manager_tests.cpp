@@ -79,7 +79,10 @@ namespace
         const auto diagnostics = manager.Diagnostics();
         assert(diagnostics.size() == 2);
         assert(diagnostics[0].found);
+        assert(!diagnostics[0].ambiguous);
+        assert(diagnostics[0].matchCount == 1);
         assert(!diagnostics[1].found);
+        assert(diagnostics[1].matchCount == 0);
         assert(!diagnostics[1].required);
 
         manager.ClearResolved();
@@ -111,6 +114,81 @@ namespace
         assert(diagnostics[0].required);
         assert(!diagnostics[0].found);
     }
+
+    void TestUniqueMatchRequired()
+    {
+        std::array<std::byte, 32> image{};
+        for (const std::size_t offset : {4U, 20U})
+        {
+            image[offset + 0] = std::byte{0xAA};
+            image[offset + 1] = std::byte{0xBB};
+            image[offset + 2] = std::byte{0xCC};
+        }
+
+        MemoryManager manager;
+        assert(manager.RegisterModule(Module{
+            "duplicate.exe",
+            reinterpret_cast<std::uintptr_t>(image.data()),
+            image.size()}));
+
+        auto duplicated = Pattern::Parse("Duplicated", "AA BB CC");
+        assert(duplicated.has_value());
+        assert(manager.AddPattern(
+            "duplicate.exe",
+            *duplicated,
+            [](MemoryManager& memory, PointerCalculator match) {
+                memory.Set(AddressId::RunScriptThreads, match);
+            }));
+
+        assert(!manager.Scan());
+        assert(!manager.Ready());
+        assert(!manager.Has(AddressId::RunScriptThreads));
+
+        const auto diagnostics = manager.Diagnostics();
+        assert(diagnostics.size() == 1);
+        assert(diagnostics[0].found);
+        assert(diagnostics[0].ambiguous);
+        assert(diagnostics[0].matchCount == 2);
+        assert(diagnostics[0].requireUnique);
+    }
+
+    void TestNonUniqueOptOut()
+    {
+        std::array<std::byte, 32> image{};
+        for (const std::size_t offset : {3U, 17U})
+        {
+            image[offset + 0] = std::byte{0xDE};
+            image[offset + 1] = std::byte{0xAD};
+        }
+
+        MemoryManager manager;
+        assert(manager.RegisterModule(Module{
+            "duplicate.exe",
+            reinterpret_cast<std::uintptr_t>(image.data()),
+            image.size()}));
+
+        auto duplicated = Pattern::Parse("DuplicatedAllowed", "DE AD");
+        assert(duplicated.has_value());
+        assert(manager.AddPattern(
+            "duplicate.exe",
+            *duplicated,
+            [](MemoryManager& memory, PointerCalculator match) {
+                memory.Set(AddressId::RunScriptThreads, match);
+            },
+            true,
+            false));
+
+        assert(manager.Scan());
+        assert(manager.Ready());
+        assert(manager.Address(AddressId::RunScriptThreads) ==
+            reinterpret_cast<std::uintptr_t>(image.data()) + 3);
+
+        const auto diagnostics = manager.Diagnostics();
+        assert(diagnostics.size() == 1);
+        assert(diagnostics[0].ambiguous);
+        assert(diagnostics[0].matchCount == 2);
+        assert(!diagnostics[0].requireUnique);
+    }
 }
 
 int main()
@@ -119,5 +197,7 @@ int main()
     TestPointerCalculatorRip();
     TestScanAndResolvedStore();
     TestRequiredFailure();
+    TestUniqueMatchRequired();
+    TestNonUniqueOptOut();
     return 0;
 }

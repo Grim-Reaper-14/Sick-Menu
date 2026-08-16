@@ -26,7 +26,8 @@ namespace Sick::Memory
         std::string_view moduleName,
         Pattern pattern,
         ResolveCallback callback,
-        bool required)
+        bool required,
+        bool requireUnique)
     {
         if (pattern.Empty() || !callback)
             return false;
@@ -41,7 +42,8 @@ namespace Sick::Memory
             resolvedModule,
             std::move(pattern),
             std::move(callback),
-            required});
+            required,
+            requireUnique});
         return true;
     }
 
@@ -65,12 +67,12 @@ namespace Sick::Memory
             const auto module = m_Modules.Find(binding.module);
             if (!module)
             {
-                diagnostics.push_back({
-                    binding.pattern.Name(),
-                    binding.module,
-                    binding.required,
-                    false,
-                    0});
+                ScanDiagnostic diagnostic;
+                diagnostic.pattern = binding.pattern.Name();
+                diagnostic.module = binding.module;
+                diagnostic.required = binding.required;
+                diagnostic.requireUnique = binding.requireUnique;
+                diagnostics.push_back(std::move(diagnostic));
 
                 if (binding.required)
                     success = false;
@@ -83,7 +85,8 @@ namespace Sick::Memory
                 [this, &binding](PointerCalculator pointer) {
                     binding.callback(*this, pointer);
                 },
-                binding.required);
+                binding.required,
+                binding.requireUnique);
 
             auto summary = scanner.Scan();
             success = success && summary.success;

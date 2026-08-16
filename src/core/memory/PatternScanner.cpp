@@ -9,12 +9,20 @@ namespace Sick::Memory
     {
     }
 
-    void PatternScanner::Add(Pattern pattern, MatchCallback callback, bool required)
+    void PatternScanner::Add(
+        Pattern pattern,
+        MatchCallback callback,
+        bool required,
+        bool requireUnique)
     {
         if (pattern.Empty() || !callback)
             return;
 
-        m_Requests.push_back({std::move(pattern), std::move(callback), required});
+        m_Requests.push_back({
+            std::move(pattern),
+            std::move(callback),
+            required,
+            requireUnique});
     }
 
     ScanSummary PatternScanner::Scan() const
@@ -31,24 +39,30 @@ namespace Sick::Memory
 
         for (const auto& request : m_Requests)
         {
-            const auto match = FindFirst(request.pattern);
-            const bool found = match.has_value();
+            const auto matches = FindAll(request.pattern);
+            const bool found = !matches.empty();
+            const bool ambiguous = matches.size() > 1;
+            const bool accepted = found && (!request.requireUnique || matches.size() == 1);
 
-            summary.diagnostics.push_back({
-                request.pattern.Name(),
-                m_Module.Name(),
-                request.required,
-                found,
-                found ? match->Address() : 0});
+            ScanDiagnostic diagnostic;
+            diagnostic.pattern = request.pattern.Name();
+            diagnostic.module = m_Module.Name();
+            diagnostic.required = request.required;
+            diagnostic.requireUnique = request.requireUnique;
+            diagnostic.found = found;
+            diagnostic.ambiguous = ambiguous;
+            diagnostic.matchCount = matches.size();
+            diagnostic.address = found ? matches.front().Address() : 0;
+            summary.diagnostics.push_back(std::move(diagnostic));
 
-            if (!found)
+            if (!accepted)
             {
                 if (request.required)
                     summary.success = false;
                 continue;
             }
 
-            request.callback(*match);
+            request.callback(matches.front());
         }
 
         return summary;
@@ -69,5 +83,24 @@ namespace Sick::Memory
         }
 
         return std::nullopt;
+    }
+
+    std::vector<PointerCalculator> PatternScanner::FindAll(const Pattern& pattern) const
+    {
+        std::vector<PointerCalculator> matches;
+
+        if (!m_Module.Valid() || pattern.Empty() || pattern.Size() > m_Module.Size())
+            return matches;
+
+        const auto image = m_Module.Bytes();
+        const auto lastOffset = image.size() - pattern.Size();
+
+        for (std::size_t offset = 0; offset <= lastOffset; ++offset)
+        {
+            if (pattern.Matches(image, offset))
+                matches.emplace_back(m_Module.Base() + offset);
+        }
+
+        return matches;
     }
 }

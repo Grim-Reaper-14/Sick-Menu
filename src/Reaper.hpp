@@ -4,6 +4,7 @@
 #include "core/memory/MemoryManager.hpp"
 #include "game/enhanced/BuildManager.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
+#include "game/enhanced/EnhancedPointers.hpp"
 #include "game/enhanced/NativeBootstrap.hpp"
 #include "game/enhanced/NativeCrossmap.hpp"
 #include "game/enhanced/NativeTable.hpp"
@@ -71,6 +72,7 @@ namespace Reaper
         inline constexpr BuildId UnknownBuild = Sick::Game::Enhanced::UnknownBuild;
 
         using BuildManager = Sick::Game::Enhanced::BuildManager;
+        using Pointers = Sick::Game::Enhanced::EnhancedPointers;
         using NativeBootstrap = Sick::Game::Enhanced::NativeBootstrap;
         using NativeCrossmap = Sick::Game::Enhanced::NativeCrossmap;
         using NativeTable = Sick::Game::Enhanced::NativeTable;

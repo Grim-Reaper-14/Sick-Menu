@@ -18,8 +18,29 @@ namespace Sick::Memory
     enum class AddressId : std::uint16_t
     {
         NativeRegistrationTable = 0,
+        InitNativeTables,
+
         ScriptGlobals,
+        ScriptThreads,
+        ScriptPrograms,
         RunScriptThreads,
+
+        SwapChain,
+        CommandQueue,
+        WindowHandle,
+        WindowProc,
+        ScreenResX,
+        ScreenResY,
+
+        GameVersion,
+        OnlineVersion,
+
+        HandleToPtr,
+        PtrToHandle,
+        PedFactory,
+        IsSessionStarted,
+        RegionCode,
+
         Count
     };
 
@@ -37,7 +58,8 @@ namespace Sick::Memory
             std::string_view moduleName,
             Pattern pattern,
             ResolveCallback callback,
-            bool required = true);
+            bool required = true,
+            bool requireUnique = true);
 
         [[nodiscard]] bool Scan();
         void ClearResolved() noexcept;
@@ -68,6 +90,7 @@ namespace Sick::Memory
             Pattern pattern;
             ResolveCallback callback;
             bool required{};
+            bool requireUnique{true};
         };
 
         static constexpr std::size_t AddressCount = static_cast<std::size_t>(AddressId::Count);
