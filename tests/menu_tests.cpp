@@ -125,7 +125,6 @@ namespace
             lastVector = value;
         };
 
-        Reaper::Scheduler::Get().Clear();
         Reaper::UI::SickMenu menu{std::move(callbacks)};
         CHECK(menu.Draw({1920.0F, 1080.0F}).Empty());
 
@@ -149,27 +148,22 @@ namespace
         }));
 
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
-        CHECK(Reaper::Scheduler::Get().Pending() == 1);
-        CHECK(Reaper::Scheduler::Get().Tick() == 1);
         CHECK(regularActions == 1);
 
         CHECK(menu.Handle(Reaper::UI::MenuInput::Down));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
         CHECK(menu.State().demoToggle);
-        CHECK(Reaper::Scheduler::Get().Tick() == 1);
         CHECK(toggleCallbacks == 1 && lastToggle);
 
         CHECK(menu.Handle(Reaper::UI::MenuInput::Down));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Right));
         CHECK(menu.State().demoNumber == 2);
-        CHECK(Reaper::Scheduler::Get().Tick() == 1);
         CHECK(numberCallbacks == 1 && lastNumber == 2);
 
         CHECK(menu.Handle(Reaper::UI::MenuInput::Down));
         CHECK(menu.Controller().SelectionCounter().current == 7);
         CHECK(menu.Handle(Reaper::UI::MenuInput::Right));
         CHECK(menu.State().demoVector == 0);
-        CHECK(Reaper::Scheduler::Get().Tick() == 1);
         CHECK(vectorCallbacks == 1 && lastVector == 0);
 
         menu.SetHeaderTexture(0x1234U);
@@ -179,7 +173,6 @@ namespace
 
         menu.Close();
         CHECK(menu.Draw({1920.0F, 1080.0F}).Empty());
-        Reaper::Scheduler::Get().Clear();
         return true;
     }
 

@@ -1,18 +1,17 @@
 #include "RuntimeLog.hpp"
 
+#include "backend/BackendCore.hpp"
+#include "backend/system/Logger.hpp"
+
 #include <cstdio>
 #include <cstdint>
-#include <fstream>
-#include <iomanip>
+#include <filesystem>
 #include <iostream>
-#include <mutex>
 #include <sstream>
 #include <string>
 
 namespace
 {
-    std::mutex g_LogMutex;
-    std::ofstream g_LogFile;
     PVOID g_ExceptionHandler{};
     std::uintptr_t g_ModuleBase{};
     std::size_t g_ModuleSize{};
@@ -30,7 +29,7 @@ namespace
         message << "CRASH inside SickMenu.dll: code=0x" << std::hex
                 << exception->ExceptionRecord->ExceptionCode
                 << " address=0x" << address;
-        Sick::Runtime::Log::Write(message.str());
+        Sick::Backend::System::Logger::Get().WriteImmediate(message.str());
         return EXCEPTION_CONTINUE_SEARCH;
     }
 }
@@ -59,50 +58,32 @@ namespace Sick::Runtime::Log
             static_cast<void>(freopen_s(&stream, "CONOUT$", "w", stderr));
         }
 
+        std::filesystem::path moduleDirectory;
         wchar_t modulePath[MAX_PATH]{};
         if (GetModuleFileNameW(module, modulePath, MAX_PATH))
-        {
-            std::wstring path{modulePath};
-            const auto separator = path.find_last_of(L"\\/");
-            path.resize(separator == std::wstring::npos ? 0 : separator + 1);
-            path += L"SickMenu.log";
-            g_LogFile.open(path, std::ios::out | std::ios::trunc);
-        }
+            moduleDirectory = std::filesystem::path(modulePath).parent_path();
 
+        const bool backendReady = Backend::BackendCore::Get().Initialize(moduleDirectory);
         g_ExceptionHandler = AddVectoredExceptionHandler(1, &LogModuleException);
-        Write("logger initialized");
-        return true;
+        Write(backendReady
+            ? "backend logger initialized"
+            : "backend core initialization failed; logging to console fallback");
+        return backendReady;
     }
 
     void Write(std::string_view message) noexcept
     {
-        try
-        {
-            std::scoped_lock lock(g_LogMutex);
-            std::cout << "[SickMenu] " << message << std::endl;
-            if (g_LogFile)
-            {
-                g_LogFile << "[SickMenu] " << message << std::endl;
-                g_LogFile.flush();
-            }
-        }
-        catch (...)
-        {
-        }
+        Backend::System::Logger::Get().Write(message);
     }
 
     void Shutdown() noexcept
     {
         Write("logger shutting down");
+        Backend::BackendCore::Get().Shutdown();
         if (g_ExceptionHandler)
         {
             RemoveVectoredExceptionHandler(g_ExceptionHandler);
             g_ExceptionHandler = nullptr;
-        }
-        {
-            std::scoped_lock lock(g_LogMutex);
-            if (g_LogFile)
-                g_LogFile.close();
         }
         FreeConsole();
     }

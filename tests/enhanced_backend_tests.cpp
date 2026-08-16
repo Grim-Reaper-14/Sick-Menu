@@ -1,3 +1,5 @@
+#include "backend/BackendApi.hpp"
+#include "backend/BackendCore.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/natives/NativeBackend.hpp"
 #include "game/scheduler/GameScheduler.hpp"
@@ -73,11 +75,15 @@ int main()
 
     PlayerService player;
     assert(player.LocalPed() == 99);
-    assert(player.Exists());
-    player.SetInvincible(true);
+    assert(player.Exists(99));
+
+    Sick::Backend::BackendApi::Get().SetGodMode(true);
     EnhancedGame::Tick();
     assert(g_LastEntity == 99);
     assert(g_LastInvincible);
+    auto snapshot = Sick::Backend::BackendApi::Get().Snapshot();
+    assert(snapshot.godModeRequested);
+    assert(snapshot.godModeActive);
 
     bool scheduled = false;
     GameScheduler::Get().Queue([&scheduled]() { scheduled = true; });
@@ -86,9 +92,12 @@ int main()
     assert(scheduled);
     assert(GameScheduler::Get().Pending() == 0);
 
-    player.SetInvincible(false);
+    Sick::Backend::BackendApi::Get().SetGodMode(false);
     EnhancedGame::Tick();
     assert(!g_LastInvincible);
+    snapshot = Sick::Backend::BackendApi::Get().Snapshot();
+    assert(!snapshot.godModeRequested);
+    assert(!snapshot.godModeActive);
 
     const auto stats = NativeSystem::Stats();
     assert(stats.calls >= 4);

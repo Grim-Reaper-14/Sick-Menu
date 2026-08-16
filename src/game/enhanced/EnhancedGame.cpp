@@ -1,7 +1,6 @@
 #include "EnhancedGame.hpp"
+#include "backend/BackendCore.hpp"
 #include "game/natives/NativeSystem.hpp"
-#include "game/scheduler/GameScheduler.hpp"
-#include "game/services/PlayerService.hpp"
 
 namespace Sick::Game::Enhanced
 {
@@ -10,7 +9,8 @@ namespace Sick::Game::Enhanced
         NativeTable::LookupFn lookup,
         NativeTable::HashMapperFn mapper) noexcept
     {
-        GameScheduler::Get().Clear();
+        // Do not clear backend commands here. Native initialization can happen
+        // after the frontend has already submitted desired feature state.
         EnhancedScriptHost::Shutdown();
         const auto initialized = Natives::NativeSystem::Initialize(build, lookup, mapper);
         if (initialized)
@@ -23,7 +23,7 @@ namespace Sick::Game::Enhanced
         NativeBootstrap::ProviderFn provider,
         NativeBootstrap::HashMapperFn mapper) noexcept
     {
-        GameScheduler::Get().Clear();
+        // Deferred backend work survives late/repeated native initialization.
         EnhancedScriptHost::Shutdown();
         const auto initialized = Natives::NativeSystem::InitializeIndexed(build, provider, mapper);
         if (initialized)
@@ -61,8 +61,7 @@ namespace Sick::Game::Enhanced
 
     void EnhancedGame::Shutdown() noexcept
     {
-        GameScheduler::Get().Clear();
-        PlayerService{}.Reset();
+        Backend::BackendCore::Get().ResetGameState();
         ScriptGlobal::ResetResolver();
         EnhancedScriptHost::Shutdown();
         Natives::NativeSystem::Shutdown();
@@ -70,12 +69,7 @@ namespace Sick::Game::Enhanced
 
     void EnhancedGame::Tick()
     {
-        // Script-function callbacks and native callbacks share this queue. The
-        // injected host owns the game-thread tick even while either backend is
-        // still coming online, and each backend independently fails closed.
-        GameScheduler::Get().Tick();
-        if (Natives::NativeSystem::Ready())
-            PlayerService{}.Tick();
+        Backend::BackendCore::Get().TickGame();
     }
 
     bool EnhancedGame::Ready() noexcept

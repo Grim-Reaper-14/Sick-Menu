@@ -17,8 +17,9 @@ namespace Sick::Ui
         std::size_t demoVector{2};
     };
 
-    // These callbacks are queued onto GameScheduler before execution. They are
-    // therefore safe places to bind native calls or ScriptFunction::TryCall().
+    // Frontend notifications execute on the frontend/render thread. They must
+    // only submit intent to BackendApi; GTA natives and script functions are
+    // executed by BackendCore on the game thread.
     struct SickMenuCallbacks
     {
         std::function<void(bool)> godMode;

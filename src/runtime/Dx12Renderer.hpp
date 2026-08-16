@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/menu/SickMenu.hpp"
+#include "frontend/FrontendCore.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -39,7 +39,7 @@ namespace Sick::Runtime
 
         HWND m_Window{};
         bool m_Ready{};
-        Sick::Ui::SickMenu m_Menu;
+        Frontend::FrontendCore m_Frontend;
         Microsoft::WRL::ComPtr<IDXGISwapChain3> m_SwapChain;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_Queue;
         Microsoft::WRL::ComPtr<ID3D12Device> m_Device;

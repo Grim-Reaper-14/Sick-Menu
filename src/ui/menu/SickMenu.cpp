@@ -1,23 +1,15 @@
 #include "SickMenu.hpp"
 
-#include "game/scheduler/GameScheduler.hpp"
-#include "game/services/PlayerService.hpp"
-
 #include <utility>
 #include <vector>
 
 namespace
 {
     template <typename Callback, typename... Arguments>
-    void QueueCallback(Callback callback, Arguments... arguments)
+    void Notify(Callback& callback, Arguments&&... arguments)
     {
-        if (!callback)
-            return;
-
-        Sick::Game::GameScheduler::Get().Queue(
-            [callback = std::move(callback), ... arguments = std::move(arguments)]() mutable {
-                callback(std::move(arguments)...);
-            });
+        if (callback)
+            callback(std::forward<Arguments>(arguments)...);
     }
 }
 
@@ -31,34 +23,33 @@ namespace Sick::Ui
             "GodMode",
             m_State.godMode,
             [callback = std::move(godModeCallback)](bool enabled) mutable {
-                Game::PlayerService{}.SetInvincible(enabled);
-                QueueCallback(callback, enabled);
+                Notify(callback, enabled);
             });
 
         m_SelfPage.AddToggle(
             "Beast Jump",
             m_State.beastJump,
             [callback = std::move(callbacks.beastJump)](bool enabled) mutable {
-                QueueCallback(callback, enabled);
+                Notify(callback, enabled);
             });
         m_SelfPage.AddToggle(
             "Graceful Landing",
             m_State.gracefulLanding,
             [callback = std::move(callbacks.gracefulLanding)](bool enabled) mutable {
-                QueueCallback(callback, enabled);
+                Notify(callback, enabled);
             });
 
         m_SelfPage.AddLabel("Demo");
         m_SelfPage.AddAction(
             "Regular Option",
             [callback = std::move(callbacks.regularAction)]() mutable {
-                QueueCallback(callback);
+                Notify(callback);
             });
         m_SelfPage.AddToggle(
             "Toggle Option",
             m_State.demoToggle,
             [callback = std::move(callbacks.demoToggle)](bool enabled) mutable {
-                QueueCallback(callback, enabled);
+                Notify(callback, enabled);
             });
         m_SelfPage.AddInteger(
             "Number Option",
@@ -67,14 +58,14 @@ namespace Sick::Ui
             10,
             1,
             [callback = std::move(callbacks.demoNumber)](int value) mutable {
-                QueueCallback(callback, value);
+                Notify(callback, value);
             });
         m_SelfPage.AddChoice(
             "Vector Option",
             m_State.demoVector,
             std::vector<std::string>{"One", "Two", "Three"},
             [callback = std::move(callbacks.demoVector)](std::size_t index) mutable {
-                QueueCallback(callback, index);
+                Notify(callback, index);
             });
 
         // Match the supplied reference frame: Regular Option is item 4 / 7.

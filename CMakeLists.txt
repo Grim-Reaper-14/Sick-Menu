@@ -1,7 +1,18 @@
 cmake_minimum_required(VERSION 4.2)
-project(SickMenu VERSION 0.2.0 LANGUAGES CXX)
+project(SickMenu VERSION 0.3.0 LANGUAGES CXX)
 
 add_library(sick_native STATIC
+    src/backend/BackendApi.cpp
+    src/backend/BackendCore.cpp
+    src/backend/calls/GameCallHub.cpp
+    src/backend/features/PlayerFeatures.cpp
+    src/backend/system/FileSystem.cpp
+    src/backend/system/Logger.cpp
+    src/backend/system/PerformanceMonitor.cpp
+    src/backend/system/SettingsManager.cpp
+    src/backend/tasking/GameFiberScheduler.cpp
+    src/backend/tasking/ThreadPool.cpp
+    src/frontend/FrontendCore.cpp
     src/game/enhanced/BuildManager.cpp
     src/game/enhanced/EnhancedGame.cpp
     src/game/enhanced/EnhancedScriptHost.cpp

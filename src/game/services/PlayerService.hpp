@@ -4,13 +4,13 @@
 
 namespace Sick::Game
 {
+    // Stateless low-level player operations. Feature lifetime and desired state
+    // belong to the backend feature layer, not to this service.
     class PlayerService final
     {
     public:
         [[nodiscard]] Ped LocalPed() const noexcept;
-        [[nodiscard]] bool Exists() const noexcept;
-        void SetInvincible(bool enabled) const noexcept;
-        void Tick() const noexcept;
-        void Reset() const noexcept;
+        [[nodiscard]] bool Exists(Ped ped) const noexcept;
+        void SetInvincible(Ped ped, bool enabled) const noexcept;
     };
 }

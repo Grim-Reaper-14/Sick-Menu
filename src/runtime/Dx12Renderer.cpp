@@ -1,34 +1,17 @@
 #include "Dx12Renderer.hpp"
 
-#include "ui/menu/ImGuiMenuBackend.hpp"
-#include "game/scripts/ScriptFunctionCatalog.hpp"
 #include "RuntimeLog.hpp"
+#include "ui/menu/ImGuiMenuBackend.hpp"
 
 #include <backends/imgui_impl_dx12.h>
 #include <backends/imgui_impl_win32.h>
 #include <imgui.h>
 
-#include <utility>
-
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
 namespace Sick::Runtime
 {
-    Dx12Renderer::Dx12Renderer() :
-        m_Menu(Ui::SickMenuCallbacks{
-            .regularAction = [] {
-                const auto* specification = Game::Scripts::ScriptFunctionCatalog::Find(
-                    Game::Scripts::KnownScriptFunction::GetFmmcVariationCount);
-                if (!specification)
-                    return;
-                const auto function = specification->Bind();
-                const auto result = function.TryCall<int>();
-                OutputDebugStringW(result
-                    ? L"[SickMenu] Script VM test succeeded\n"
-                    : L"[SickMenu] Script VM test unavailable (freemode not loaded or signature changed)\n");
-            }})
-    {
-    }
+    Dx12Renderer::Dx12Renderer() = default;
 
     bool Dx12Renderer::Initialize(IDXGISwapChain* swapChain, ID3D12CommandQueue* queue, HWND window)
     {
@@ -157,7 +140,7 @@ namespace Sick::Runtime
             return (GetAsyncKeyState(virtualKey) & 1) != 0;
         };
 
-        auto& controller = m_Menu.Controller();
+        auto& controller = m_Frontend.Menu().Controller();
         if (pressed(VK_F4))
             controller.Handle(Ui::MenuInput::Toggle);
         if (!controller.IsOpen())
@@ -188,17 +171,18 @@ namespace Sick::Runtime
         ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
+        auto& menu = m_Frontend.Menu();
         if (pollKeyboardFallback)
         {
             PollKeyboardFallback();
             const auto displaySize = ImGui::GetIO().DisplaySize;
-            Ui::ImGuiMenuBackend::Submit(m_Menu.Draw({displaySize.x, displaySize.y}));
+            Ui::ImGuiMenuBackend::Submit(menu.Draw({displaySize.x, displaySize.y}));
         }
         else
         {
             Ui::ImGuiMenuKeys keys{};
             keys.toggle = ImGuiKey_F4;
-            Sick::Ui::ImGuiMenuBackend::Render(m_Menu, keys);
+            Sick::Ui::ImGuiMenuBackend::Render(menu, keys);
         }
         ImGui::Render();
 
