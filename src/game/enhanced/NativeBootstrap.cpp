@@ -1,4 +1,5 @@
 #include "NativeBootstrap.hpp"
+#include "NativeCrossmap.hpp"
 #include "game/natives/NativeHandlerTable.hpp"
 #include "game/natives/generated/NativeHashes.hpp"
 
@@ -25,7 +26,9 @@ namespace Sick::Game::Enhanced
         {
             const auto index = static_cast<Natives::NativeIndex>(i);
             const auto originalHash = Natives::Generated::HashFor(index);
-            const auto mappedHash = mapper ? mapper(originalHash, build) : originalHash;
+            const auto mappedHash = mapper
+                ? mapper(originalHash, build)
+                : NativeCrossmap::Get().Translate(originalHash, build);
             const auto handler = provider(mappedHash, build);
 
             handlers.Set(index, handler);
@@ -71,9 +74,17 @@ namespace Sick::Game::Enhanced
 
     Natives::NativeHandler NativeBootstrap::Resolve(NativeHash hash) const noexcept
     {
-        const auto index = Natives::Generated::IndexForHash(hash);
+        auto index = Natives::Generated::IndexForHash(hash);
         if (index == Natives::NativeIndex::Count)
-            return nullptr;
+        {
+            const auto original = NativeCrossmap::Get().Reverse(hash, BuildManager::Current());
+            if (!original)
+                return nullptr;
+
+            index = Natives::Generated::IndexForHash(*original);
+            if (index == Natives::NativeIndex::Count)
+                return nullptr;
+        }
 
         return Natives::NativeHandlerTable::Get().Get(index);
     }

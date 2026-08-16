@@ -5,6 +5,7 @@ add_library(sick_native STATIC
     src/game/enhanced/BuildManager.cpp
     src/game/enhanced/EnhancedGame.cpp
     src/game/enhanced/NativeBootstrap.cpp
+    src/game/enhanced/NativeCrossmap.cpp
     src/game/enhanced/NativeTable.cpp
     src/game/enhanced/ScriptGlobal.cpp
     src/game/natives/NativeHandlerTable.cpp
@@ -22,6 +23,13 @@ option(SICK_NATIVE_BUILD_TESTS "Build Sick native backend tests" OFF)
 
 if(SICK_NATIVE_BUILD_TESTS)
     enable_testing()
+
+    add_executable(native_crossmap_tests
+        tests/native_crossmap_tests.cpp
+    )
+    target_link_libraries(native_crossmap_tests PRIVATE sick_native)
+    target_compile_features(native_crossmap_tests PRIVATE cxx_std_20)
+    add_test(NAME native_crossmap_tests COMMAND native_crossmap_tests)
 
     add_executable(sick_native_tests
         tests/native_invoker_tests.cpp

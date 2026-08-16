@@ -1,5 +1,5 @@
 #include "NativeRegistry.hpp"
-#include "Natives.hpp"
+#include "generated/NativeCatalog.hpp"
 
 #include <mutex>
 #include <utility>
@@ -23,10 +23,16 @@ namespace Sick::Game::Natives
     {
         Clear();
 
-        Register({Hashes::PLAYER_PED_ID, "PLAYER_PED_ID", "PLAYER", 0, false});
-        Register({Hashes::PLAYER_ID, "PLAYER_ID", "PLAYER", 0, false});
-        Register({Hashes::DOES_ENTITY_EXIST, "DOES_ENTITY_EXIST", "ENTITY", 1, false});
-        Register({Hashes::SET_ENTITY_INVINCIBLE, "SET_ENTITY_INVINCIBLE", "ENTITY", 2, false});
+        for (const auto& definition : Generated::NativeCatalog)
+        {
+            Register({
+                definition.hash,
+                std::string{definition.name},
+                std::string{definition.nameSpace},
+                definition.argumentCount,
+                definition.vectorFixup,
+            });
+        }
     }
 
     void NativeRegistry::Clear()

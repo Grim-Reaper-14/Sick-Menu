@@ -10,5 +10,6 @@
 #include "NativeSystem.hpp"
 #include "NativeTypes.hpp"
 #include "Natives.hpp"
+#include "generated/NativeCatalog.hpp"
 #include "generated/NativeHashes.hpp"
 #include "generated/NativeIndex.hpp"

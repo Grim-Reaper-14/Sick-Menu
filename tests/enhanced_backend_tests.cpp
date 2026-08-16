@@ -1,4 +1,5 @@
 #include "game/enhanced/EnhancedGame.hpp"
+#include "game/enhanced/NativeCrossmap.hpp"
 #include "game/natives/NativeBackend.hpp"
 #include "game/scheduler/GameScheduler.hpp"
 #include "game/services/PlayerService.hpp"
@@ -10,6 +11,8 @@ namespace
     using namespace Sick::Game;
     using namespace Sick::Game::Natives;
     using namespace Sick::Game::Enhanced;
+
+    constexpr NativeHash MappedPlayerPedId = 0xF00DBAAD00000001ULL;
 
     int g_Lookups = 0;
     Entity g_LastEntity = 0;
@@ -38,7 +41,7 @@ namespace
 
         switch (hash)
         {
-        case Hashes::PLAYER_PED_ID:
+        case MappedPlayerPedId:
             return &PlayerPedHandler;
         case Hashes::DOES_ENTITY_EXIST:
             return &EntityExistsHandler;
@@ -55,6 +58,10 @@ int main()
     using namespace Sick::Game;
     using namespace Sick::Game::Natives;
     using namespace Sick::Game::Enhanced;
+
+    auto& crossmap = NativeCrossmap::Get();
+    crossmap.Clear();
+    assert(crossmap.Register(1234, Hashes::PLAYER_PED_ID, MappedPlayerPedId));
 
     assert(EnhancedGame::Initialize(1234, &Lookup));
     assert(EnhancedGame::Ready());
@@ -86,5 +93,6 @@ int main()
 
     EnhancedGame::Shutdown();
     assert(!EnhancedGame::Ready());
+    crossmap.Clear();
     return 0;
 }

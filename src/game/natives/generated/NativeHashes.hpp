@@ -1,18 +1,18 @@
 #pragma once
 
-#include "../NativeTypes.hpp"
-#include "NativeIndex.hpp"
+#include "NativeCatalog.hpp"
 
 #include <array>
 
 namespace Sick::Game::Natives::Generated
 {
-    inline constexpr std::array<NativeHash, NativeCount> NativeHashes{
-        0xD80958FC74E988A6ULL,
-        0x4F8644AF03D0E0D6ULL,
-        0x7239B21A38F536BAULL,
-        0x3882114BDE571AD4ULL,
-    };
+    inline constexpr auto NativeHashes = []
+    {
+        std::array<NativeHash, NativeCount> hashes{};
+        for (std::size_t i = 0; i < NativeCatalog.size(); ++i)
+            hashes[i] = NativeCatalog[i].hash;
+        return hashes;
+    }();
 
     [[nodiscard]] constexpr NativeHash HashFor(NativeIndex index) noexcept
     {

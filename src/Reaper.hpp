@@ -3,6 +3,7 @@
 #include "game/enhanced/BuildManager.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/enhanced/NativeBootstrap.hpp"
+#include "game/enhanced/NativeCrossmap.hpp"
 #include "game/enhanced/NativeTable.hpp"
 #include "game/enhanced/ScriptGlobal.hpp"
 #include "game/natives/NativeBackend.hpp"
@@ -28,6 +29,8 @@ namespace Reaper
     {
         using NativeIndex = Sick::Game::Natives::NativeIndex;
         using Context = Sick::Game::Natives::NativeCallContext;
+        using Crossmap = Sick::Game::Enhanced::NativeCrossmap;
+        using CrossmapEntry = Sick::Game::Enhanced::NativeCrossmapEntry;
         using CallFrame = Sick::Game::Natives::NativeCallFrame;
         using Handler = Sick::Game::Natives::NativeHandler;
         using HandlerTable = Sick::Game::Natives::NativeHandlerTable;
@@ -46,6 +49,7 @@ namespace Reaper
 
         using BuildManager = Sick::Game::Enhanced::BuildManager;
         using NativeBootstrap = Sick::Game::Enhanced::NativeBootstrap;
+        using NativeCrossmap = Sick::Game::Enhanced::NativeCrossmap;
         using NativeTable = Sick::Game::Enhanced::NativeTable;
         using Game = Sick::Game::Enhanced::EnhancedGame;
     }

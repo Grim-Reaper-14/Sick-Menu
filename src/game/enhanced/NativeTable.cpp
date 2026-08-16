@@ -1,4 +1,5 @@
 #include "NativeTable.hpp"
+#include "NativeCrossmap.hpp"
 
 namespace Sick::Game::Enhanced
 {
@@ -36,7 +37,9 @@ namespace Sick::Game::Enhanced
         if (!lookup || build == UnknownBuild)
             return nullptr;
 
-        const auto mappedHash = mapper ? mapper(hash, build) : hash;
+        const auto mappedHash = mapper
+            ? mapper(hash, build)
+            : NativeCrossmap::Get().Translate(hash, build);
         return lookup(mappedHash, build);
     }
 

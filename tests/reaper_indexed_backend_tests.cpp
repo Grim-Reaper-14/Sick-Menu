@@ -6,6 +6,8 @@
 
 namespace
 {
+    constexpr Reaper::NativeHash MappedPlayerPedId = 0xF00DBAAD00000002ULL;
+
     int g_ProviderCalls = 0;
     Reaper::Entity g_LastEntity = 0;
     bool g_LastInvincible = false;
@@ -39,7 +41,7 @@ namespace
 
         switch (hash)
         {
-        case Reaper::Native::Hashes::PLAYER_PED_ID:
+        case MappedPlayerPedId:
             return &PlayerPedHandler;
         case Reaper::Native::Hashes::PLAYER_ID:
             return &PlayerIdHandler;
@@ -60,6 +62,10 @@ namespace
 
 int main()
 {
+    auto& crossmap = Reaper::Native::Crossmap::Get();
+    crossmap.Clear();
+    assert(crossmap.Register(9001, Reaper::Native::Hashes::PLAYER_PED_ID, MappedPlayerPedId));
+
     assert(Reaper::Enhanced::Game::InitializeIndexed(9001, &ProvideNative));
     assert(Reaper::Enhanced::Game::Ready());
     assert(g_ProviderCalls == static_cast<int>(Sick::Game::Natives::NativeCount));
@@ -76,6 +82,7 @@ int main()
 
     const auto rawPed = Reaper::Native::Invoker::Call<Reaper::Ped>(Reaper::Native::Hashes::PLAYER_PED_ID);
     assert(rawPed == 321);
+    assert(Reaper::Native::Invoker::Call<Reaper::Ped>(MappedPlayerPedId) == 321);
     assert(g_ProviderCalls == static_cast<int>(Sick::Game::Natives::NativeCount));
 
     Reaper::Enhanced::Game::BindScriptGlobalResolver(&ResolveGlobal);
@@ -101,5 +108,6 @@ int main()
     Reaper::Enhanced::Game::Shutdown();
     assert(!Reaper::Enhanced::Game::Ready());
     assert(!Reaper::ScriptGlobal::ResolverReady());
+    crossmap.Clear();
     return 0;
 }
