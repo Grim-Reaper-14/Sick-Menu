@@ -7,6 +7,16 @@ namespace Sick::Game::Scripts
 {
     using ScriptHash = std::uint32_t;
 
+    // GTA script vectors occupy three 64-bit VM stack slots.
+    struct ScriptVector3
+    {
+        alignas(8) float x{};
+        alignas(8) float y{};
+        alignas(8) float z{};
+    };
+
+    static_assert(sizeof(ScriptVector3) == 3 * sizeof(std::uint64_t));
+
     [[nodiscard]] constexpr char ToLowerAscii(char value) noexcept
     {
         return value >= 'A' && value <= 'Z'

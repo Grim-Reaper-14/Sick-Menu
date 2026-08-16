@@ -10,8 +10,11 @@ namespace Sick::Game::Enhanced
         NativeTable::HashMapperFn mapper) noexcept
     {
         GameScheduler::Get().Clear();
-        Scripts::ScriptRuntime::Get().Reset();
-        return Natives::NativeSystem::Initialize(build, lookup, mapper);
+        EnhancedScriptHost::Shutdown();
+        const auto initialized = Natives::NativeSystem::Initialize(build, lookup, mapper);
+        if (initialized)
+            static_cast<void>(EnhancedScriptHost::Initialize());
+        return initialized;
     }
 
     bool EnhancedGame::InitializeIndexed(
@@ -20,8 +23,11 @@ namespace Sick::Game::Enhanced
         NativeBootstrap::HashMapperFn mapper) noexcept
     {
         GameScheduler::Get().Clear();
-        Scripts::ScriptRuntime::Get().Reset();
-        return Natives::NativeSystem::InitializeIndexed(build, provider, mapper);
+        EnhancedScriptHost::Shutdown();
+        const auto initialized = Natives::NativeSystem::InitializeIndexed(build, provider, mapper);
+        if (initialized)
+            static_cast<void>(EnhancedScriptHost::Initialize());
+        return initialized;
     }
 
     void EnhancedGame::BindScriptGlobalResolver(ScriptGlobal::ResolverFn resolver) noexcept
@@ -29,10 +35,21 @@ namespace Sick::Game::Enhanced
         ScriptGlobal::BindResolver(resolver);
     }
 
+    bool EnhancedGame::InitializeScriptHost() noexcept
+    {
+        return EnhancedScriptHost::Initialize();
+    }
+
+    bool EnhancedGame::BindScriptHost(EnhancedScriptHost::Bindings bindings) noexcept
+    {
+        return EnhancedScriptHost::Bind(bindings);
+    }
+
     bool EnhancedGame::BindScriptRuntime(
         Scripts::ScriptRuntime::ProgramResolverFn programResolver,
         Scripts::ScriptRuntime::InvokeFn invoker) noexcept
     {
+        EnhancedScriptHost::Shutdown();
         return Scripts::ScriptRuntime::Get().Configure(programResolver, invoker);
     }
 
@@ -45,7 +62,7 @@ namespace Sick::Game::Enhanced
     {
         GameScheduler::Get().Clear();
         ScriptGlobal::ResetResolver();
-        Scripts::ScriptRuntime::Get().Reset();
+        EnhancedScriptHost::Shutdown();
         Natives::NativeSystem::Shutdown();
     }
 

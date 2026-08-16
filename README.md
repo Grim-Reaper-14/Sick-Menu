@@ -69,16 +69,12 @@ This keeps game-version-specific global resolution outside feature code.
 
 ## Script functions
 
-The backend now supports YimMenuV2-style script functions: identify a loaded
-script by its JOAAT hash, scan its bytecode for a signature, optionally adjust
-or dereference the match with `Add()`, `Sub()`, and `Rip()`, then invoke the
-resolved program counter with typed arguments.
+The backend now uses the same live call path as YimMenuV2-style script
+functions: identify a loaded script by its JOAAT hash, scan its bytecode for a
+signature, resolve the function program counter, switch the active GTA script
+TLS context, and execute it through the Enhanced script VM.
 
 ```cpp
-Reaper::Enhanced::Game::BindScriptRuntime(
-    &ResolveLoadedScript,
-    &InvokeThroughScriptVm);
-
 static Reaper::ScriptFunction function{
     Reaper::Joaat("freemode"),
     Reaper::ScriptPointer{"ExampleFunction", "5D ? ? ? 38 2A 71"}
@@ -91,19 +87,36 @@ if (const auto value = function.TryCall<int>(123, true))
 }
 ```
 
-`ResolveLoadedScript` returns a `Reaper::ScriptProgramView` for a live Enhanced
-script program. `InvokeThroughScriptVm` is the host adapter that finds the live
-thread, installs its TLS context, pushes the supplied 64-bit argument slots and
-return slot, runs the script VM at the supplied program counter, restores TLS,
-and copies the result. Keeping those callbacks outside this library prevents
-unverified game offsets from being baked into the public backend.
+Normal `Reaper::Enhanced::Game` initialization now attempts to locate the live
+script-thread array, script-program table, script-global table, and script VM in
+`GTA5_Enhanced.exe`. The resolver then finds the matching loaded program and
+thread, validates stack capacity, installs the thread in TLS, invokes the VM,
+restores the previous TLS state, and copies the return value. An existing
+pointer manager can instead call `Game::BindScriptHost()` with resolved
+addresses; `BindScriptRuntime()` remains available for a custom adapter.
+
+`Reaper::ScriptFunctions` also exposes the concrete function definitions used
+by the current Enhanced [YimMenuV2](https://github.com/YimMenu/YimMenuV2) call
+sites. For example:
+
+```cpp
+const auto* spec = Reaper::ScriptFunctions::Find(
+    Reaper::KnownScriptFunction::GetWeaponKills);
+static auto getWeaponKills = spec->Bind();
+
+const auto kills = getWeaponKills.TryCall<int>(weaponHash, -1);
+```
+
+The catalog is explicitly labeled for GTA Online 1.73 / Enhanced build
+1158.13 and records the exact decompiled-scripts and YimMenuV2 reference
+commits. Functions fail closed when their target script, thread, signature, or
+VM binding is unavailable. Calls must run on the game/scheduler thread.
 
 Script signatures are build-sensitive. The
 [GTA V Enhanced decompiled scripts](https://github.com/acidlabsdev/gtav-enhanced-scripts)
-are useful for locating functions and reviewing behavior after game updates;
-they are reference data and are not compiled or vendored by this project.
-Resolve and invoke script functions only from the game/scheduler thread while
-the target script is loaded.
+are the source reference for reviewing the target functions after game
+updates; the decompiled files themselves are not compiled, executed, or
+vendored by this project.
 
 ## Backend components
 

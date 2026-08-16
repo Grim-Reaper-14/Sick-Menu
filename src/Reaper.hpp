@@ -2,6 +2,7 @@
 
 #include "game/enhanced/BuildManager.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
+#include "game/enhanced/EnhancedScriptHost.hpp"
 #include "game/enhanced/NativeBootstrap.hpp"
 #include "game/enhanced/NativeTable.hpp"
 #include "game/enhanced/ScriptGlobal.hpp"
@@ -10,6 +11,7 @@
 #include "game/natives/generated/NativeIndex.hpp"
 #include "game/scheduler/GameScheduler.hpp"
 #include "game/scripts/ScriptFunction.hpp"
+#include "game/scripts/ScriptFunctionCatalog.hpp"
 #include "game/scripts/ScriptPointer.hpp"
 #include "game/scripts/ScriptRuntime.hpp"
 #include "game/scripts/ScriptTypes.hpp"
@@ -26,9 +28,14 @@ namespace Reaper
     using ScriptGlobal = Sick::Game::Enhanced::ScriptGlobal;
     using ScriptHash = Sick::Game::Scripts::ScriptHash;
     using ScriptFunction = Sick::Game::Scripts::ScriptFunction;
+    using ScriptFunctionSpec = Sick::Game::Scripts::ScriptFunctionSpec;
+    using KnownScriptFunction = Sick::Game::Scripts::KnownScriptFunction;
     using ScriptPattern = Sick::Game::Scripts::ScriptPattern;
     using ScriptPointer = Sick::Game::Scripts::ScriptPointer;
     using ScriptProgramView = Sick::Game::Scripts::ScriptProgramView;
+    using ScriptVector3 = Sick::Game::Scripts::ScriptVector3;
+
+    namespace ScriptFunctions = Sick::Game::Scripts::ScriptFunctionCatalog;
 
     [[nodiscard]] constexpr ScriptHash Joaat(std::string_view value) noexcept
     {
@@ -62,6 +69,8 @@ namespace Reaper
         using NativeBootstrap = Sick::Game::Enhanced::NativeBootstrap;
         using NativeTable = Sick::Game::Enhanced::NativeTable;
         using Game = Sick::Game::Enhanced::EnhancedGame;
+        using ScriptHost = Sick::Game::Enhanced::EnhancedScriptHost;
+        using ScriptHostError = Sick::Game::Enhanced::EnhancedScriptHostError;
         using ScriptRuntime = Sick::Game::Scripts::ScriptRuntime;
     }
 
