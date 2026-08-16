@@ -212,7 +212,7 @@ namespace
         std::string_view signature) noexcept
     {
         if (!image.text || image.textSize == 0 ||
-            image.textSize > std::numeric_limits<std::uint32_t>::max())
+            image.textSize > (std::numeric_limits<std::uint32_t>::max)())
         {
             return std::nullopt;
         }
@@ -438,8 +438,8 @@ namespace Sick::Game::Enhanced
             return false;
 
         if ((argumentCount != 0 && !arguments) || (returnSize != 0 && !returnValue) ||
-            argumentCount > std::numeric_limits<std::uint32_t>::max() ||
-            returnSize > std::numeric_limits<std::size_t>::max() -
+            argumentCount > (std::numeric_limits<std::uint32_t>::max)() ||
+            returnSize > (std::numeric_limits<std::size_t>::max)() -
                 (sizeof(std::uint64_t) - 1))
         {
             return false;

@@ -26,6 +26,10 @@ add_library(sick_native STATIC
 target_include_directories(sick_native PUBLIC src)
 target_compile_features(sick_native PUBLIC cxx_std_20)
 
+if(WIN32)
+    target_compile_definitions(sick_native PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+endif()
+
 if(MSVC)
     target_compile_options(sick_native PRIVATE /W4 /permissive- /EHsc)
 endif()
