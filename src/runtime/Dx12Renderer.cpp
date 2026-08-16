@@ -1,6 +1,7 @@
 #include "Dx12Renderer.hpp"
 
 #include "RuntimeLog.hpp"
+#include "backend/tasking/TaskAffinity.hpp"
 #include "ui/menu/ImGuiMenuBackend.hpp"
 
 #include <backends/imgui_impl_dx12.h>
@@ -161,6 +162,7 @@ namespace Sick::Runtime
 
     void Dx12Renderer::Render(bool pollKeyboardFallback)
     {
+        Backend::Tasking::ScopedTaskAffinity affinity{Backend::Tasking::TaskAffinity::Render};
         if (!m_Ready)
             return;
         auto& frame = m_Frames[m_SwapChain->GetCurrentBackBufferIndex()];

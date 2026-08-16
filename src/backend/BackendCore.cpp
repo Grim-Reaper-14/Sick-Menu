@@ -1,6 +1,7 @@
 #include "BackendCore.hpp"
 
 #include "backend/system/Logger.hpp"
+#include "backend/tasking/TaskAffinity.hpp"
 #include "game/natives/NativeSystem.hpp"
 #include "game/scripts/ScriptRuntime.hpp"
 
@@ -67,6 +68,7 @@ namespace Sick::Backend
 
     void BackendCore::TickGame() noexcept
     {
+        Tasking::ScopedTaskAffinity affinity{Tasking::TaskAffinity::Game};
         const auto start = std::chrono::steady_clock::now();
         const bool nativeReady = Game::Natives::NativeSystem::Ready();
         const bool scriptReady = Game::Scripts::ScriptRuntime::Get().Ready();

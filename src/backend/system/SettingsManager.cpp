@@ -3,10 +3,40 @@
 #include <algorithm>
 #include <fstream>
 #include <string>
+#include <system_error>
 #include <utility>
+
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 namespace Sick::Backend::System
 {
+    namespace
+    {
+        bool CommitSettingsFile(
+            const std::filesystem::path& temporary,
+            const std::filesystem::path& destination) noexcept
+        {
+#if defined(_WIN32)
+            return MoveFileExW(
+                temporary.c_str(),
+                destination.c_str(),
+                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+#else
+            std::error_code error;
+            std::filesystem::rename(temporary, destination, error);
+            if (!error)
+                return true;
+
+            std::filesystem::remove(destination, error);
+            error.clear();
+            std::filesystem::rename(temporary, destination, error);
+            return !error;
+#endif
+        }
+    }
+
     bool SettingsManager::Load(const std::filesystem::path& path) noexcept
     {
         try
@@ -70,17 +100,31 @@ namespace Sick::Backend::System
     {
         const auto settings = Snapshot();
         return pool.Submit([settings, path]() {
-            std::ofstream output(path, std::ios::out | std::ios::trunc);
-            if (!output)
-                return;
+            auto temporary = path;
+            temporary += ".tmp";
 
-            output << "backend.background_workers=" << settings.backend.backgroundWorkerCount << '\n';
-            output << "backend.max_game_jobs=" << settings.backend.maxGameJobsPerTick << '\n';
-            output << "backend.max_fiber_resumes=" << settings.backend.maxFiberResumesPerTick << '\n';
-            output << "backend.max_tick_micros=" << settings.backend.maxBackendMicros << '\n';
-            output << "frontend.menu_scale=" << settings.frontend.menuScale << '\n';
-            output << "frontend.animations=" << (settings.frontend.animations ? 1 : 0) << '\n';
-            output << "frontend.toggle_key=" << settings.frontend.toggleKey << '\n';
+            {
+                std::ofstream output(temporary, std::ios::out | std::ios::trunc);
+                if (!output)
+                    return;
+
+                output << "backend.background_workers=" << settings.backend.backgroundWorkerCount << '\n';
+                output << "backend.max_game_jobs=" << settings.backend.maxGameJobsPerTick << '\n';
+                output << "backend.max_fiber_resumes=" << settings.backend.maxFiberResumesPerTick << '\n';
+                output << "backend.max_tick_micros=" << settings.backend.maxBackendMicros << '\n';
+                output << "frontend.menu_scale=" << settings.frontend.menuScale << '\n';
+                output << "frontend.animations=" << (settings.frontend.animations ? 1 : 0) << '\n';
+                output << "frontend.toggle_key=" << settings.frontend.toggleKey << '\n';
+                output.flush();
+                if (!output)
+                    return;
+            }
+
+            if (!CommitSettingsFile(temporary, path))
+            {
+                std::error_code error;
+                std::filesystem::remove(temporary, error);
+            }
         });
     }
 

@@ -1,5 +1,7 @@
 #include "ThreadPool.hpp"
 
+#include "TaskAffinity.hpp"
+
 #include <algorithm>
 #include <utility>
 
@@ -82,6 +84,7 @@ namespace Sick::Backend::Tasking
 
     void ThreadPool::Worker() noexcept
     {
+        ScopedTaskAffinity affinity{TaskAffinity::Background};
         for (;;)
         {
             Task task;

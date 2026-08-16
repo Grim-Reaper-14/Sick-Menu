@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.2)
-project(SickMenu VERSION 0.3.0 LANGUAGES CXX)
+project(SickMenu VERSION 0.4.0 LANGUAGES CXX)
 
 add_library(sick_native STATIC
     src/backend/BackendApi.cpp
@@ -38,6 +38,7 @@ target_include_directories(sick_native PUBLIC src)
 target_compile_features(sick_native PUBLIC cxx_std_20)
 
 if(WIN32)
+    target_compile_definitions(sick_native PUBLIC _WIN32_WINNT=0x0601)
     target_compile_definitions(sick_native PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
@@ -88,7 +89,7 @@ if(SICK_MENU_BUILD_DLL)
     )
     target_include_directories(SickMenu PRIVATE src)
     target_compile_features(SickMenu PRIVATE cxx_std_20)
-    target_compile_definitions(SickMenu PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+    target_compile_definitions(SickMenu PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0601)
     target_compile_options(SickMenu PRIVATE /W4 /permissive- /EHsc)
     target_link_libraries(SickMenu PRIVATE
         sick_native
@@ -151,4 +152,11 @@ if(SICK_NATIVE_BUILD_TESTS)
     target_link_libraries(sick_menu_tests PRIVATE sick_native)
     target_compile_features(sick_menu_tests PRIVATE cxx_std_20)
     add_test(NAME sick_menu_tests COMMAND sick_menu_tests)
+
+    add_executable(backend_tasking_tests
+        tests/backend_tasking_tests.cpp
+    )
+    target_link_libraries(backend_tasking_tests PRIVATE sick_native)
+    target_compile_features(backend_tasking_tests PRIVATE cxx_std_20)
+    add_test(NAME backend_tasking_tests COMMAND backend_tasking_tests)
 endif()
