@@ -67,8 +67,10 @@ namespace Sick::Backend::Features
     PlayerFeatureSnapshot PlayerFeatures::Snapshot() const noexcept
     {
         return {
-            .godModeRequested = m_GodModeRequested.load(std::memory_order_acquire),
-            .godModeActive = m_GodModeActive.load(std::memory_order_acquire),
+            .godMode = {
+                .requested = m_GodModeRequested.load(std::memory_order_acquire),
+                .active = m_GodModeActive.load(std::memory_order_acquire),
+            },
         };
     }
 }

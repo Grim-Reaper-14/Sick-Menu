@@ -22,11 +22,6 @@ namespace Sick::Backend::Calls
         return Queue(CallRequirement::ScriptBackend, std::move(job));
     }
 
-    void GameCallHub::SetGodMode(bool enabled) noexcept
-    {
-        m_PlayerFeatures.SetGodMode(enabled);
-    }
-
     GameCallTickStats GameCallHub::Tick(
         std::size_t maxJobs,
         std::uint64_t maxMicros,
@@ -35,11 +30,7 @@ namespace Sick::Backend::Calls
     {
         GameCallTickStats stats{};
         if (maxJobs == 0 || maxMicros == 0)
-        {
-            if (nativeReady)
-                m_PlayerFeatures.Tick();
             return stats;
-        }
 
         const auto start = std::chrono::steady_clock::now();
         const auto withinBudget = [start, maxMicros]() {
@@ -106,9 +97,6 @@ namespace Sick::Backend::Calls
             }
         }
 
-        if (nativeReady)
-            m_PlayerFeatures.Tick();
-
         return stats;
     }
 
@@ -119,7 +107,6 @@ namespace Sick::Backend::Calls
             std::queue<PendingCall> empty;
             m_Calls.swap(empty);
         }
-        m_PlayerFeatures.Reset();
         Game::GameScheduler::Get().Clear();
     }
 
@@ -131,11 +118,6 @@ namespace Sick::Backend::Calls
             pending = m_Calls.size();
         }
         return pending + Game::GameScheduler::Get().Pending();
-    }
-
-    Features::PlayerFeatureSnapshot GameCallHub::PlayerSnapshot() const noexcept
-    {
-        return m_PlayerFeatures.Snapshot();
     }
 
     bool GameCallHub::Queue(CallRequirement requirement, Job job)

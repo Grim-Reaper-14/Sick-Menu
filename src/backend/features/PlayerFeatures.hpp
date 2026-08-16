@@ -1,5 +1,6 @@
 #pragma once
 
+#include "backend/BackendTypes.hpp"
 #include "game/services/PlayerService.hpp"
 
 #include <atomic>
@@ -7,12 +8,6 @@
 
 namespace Sick::Backend::Features
 {
-    struct PlayerFeatureSnapshot
-    {
-        bool godModeRequested{};
-        bool godModeActive{};
-    };
-
     class PlayerFeatures final
     {
     public:

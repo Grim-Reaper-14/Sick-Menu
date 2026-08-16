@@ -1,7 +1,5 @@
 #pragma once
 
-#include "backend/features/PlayerFeatures.hpp"
-
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -31,7 +29,6 @@ namespace Sick::Backend::Calls
         [[nodiscard]] bool QueueGame(Job job);
         [[nodiscard]] bool QueueNative(Job job);
         [[nodiscard]] bool QueueScript(Job job);
-        void SetGodMode(bool enabled) noexcept;
 
         GameCallTickStats Tick(
             std::size_t maxJobs,
@@ -41,7 +38,6 @@ namespace Sick::Backend::Calls
         void Reset() noexcept;
 
         [[nodiscard]] std::size_t Pending() const noexcept;
-        [[nodiscard]] Features::PlayerFeatureSnapshot PlayerSnapshot() const noexcept;
 
     private:
         struct PendingCall
@@ -55,6 +51,5 @@ namespace Sick::Backend::Calls
 
         mutable std::mutex m_Mutex;
         std::queue<PendingCall> m_Calls;
-        Features::PlayerFeatures m_PlayerFeatures;
     };
 }

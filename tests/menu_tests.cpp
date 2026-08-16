@@ -1,4 +1,6 @@
 #include "Reaper.hpp"
+#include "backend/BackendApi.hpp"
+#include "frontend/FrontendCore.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -176,9 +178,26 @@ namespace
         return true;
     }
 
+    bool TestFrontendSynchronization()
+    {
+        auto& backend = Sick::Backend::BackendApi::Get();
+        backend.SetGodMode(true);
+
+        Sick::Frontend::FrontendCore frontend;
+        frontend.Tick();
+        CHECK(frontend.Menu().State().godMode);
+
+        backend.SetGodMode(false);
+        frontend.Tick();
+        CHECK(!frontend.Menu().State().godMode);
+        return true;
+    }
+
     bool RunTests()
     {
-        return TestNavigationAndSubmenus() && TestReferenceMenuAndRenderer();
+        return TestNavigationAndSubmenus() &&
+            TestReferenceMenuAndRenderer() &&
+            TestFrontendSynchronization();
     }
 }
 

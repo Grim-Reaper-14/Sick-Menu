@@ -82,8 +82,13 @@ int main()
     assert(g_LastEntity == 99);
     assert(g_LastInvincible);
     auto snapshot = Sick::Backend::BackendApi::Get().Snapshot();
-    assert(snapshot.godModeRequested);
-    assert(snapshot.godModeActive);
+    assert(snapshot.player.godMode.requested);
+    assert(snapshot.player.godMode.active);
+
+    const auto activeStats = NativeSystem::Stats();
+    EnhancedGame::Tick();
+    const auto afterRefreshIdle = NativeSystem::Stats();
+    assert(afterRefreshIdle.calls == activeStats.calls);
 
     bool scheduled = false;
     GameScheduler::Get().Queue([&scheduled]() { scheduled = true; });
@@ -96,8 +101,8 @@ int main()
     EnhancedGame::Tick();
     assert(!g_LastInvincible);
     snapshot = Sick::Backend::BackendApi::Get().Snapshot();
-    assert(!snapshot.godModeRequested);
-    assert(!snapshot.godModeActive);
+    assert(!snapshot.player.godMode.requested);
+    assert(!snapshot.player.godMode.active);
 
     const auto stats = NativeSystem::Stats();
     assert(stats.calls >= 4);

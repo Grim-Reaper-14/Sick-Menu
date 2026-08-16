@@ -11,6 +11,16 @@
 
 namespace Sick::Backend
 {
+    namespace
+    {
+        std::uint64_t ElapsedMicros(std::chrono::steady_clock::time_point start) noexcept
+        {
+            return static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::steady_clock::now() - start).count());
+        }
+    }
+
     BackendCore& BackendCore::Get() noexcept
     {
         static BackendCore core;
@@ -34,8 +44,15 @@ namespace Sick::Backend
         if (!m_Threads.Start(std::clamp<std::size_t>(settings.backgroundWorkerCount, 1, 4)))
             return false;
 
+        if (!m_Configs.Initialize(m_Threads, m_FileSystem.Configs()))
+        {
+            m_Threads.Stop();
+            return false;
+        }
+
         if (!System::Logger::Get().Initialize(m_Threads, m_FileSystem.LogFile()))
         {
+            m_Configs.Shutdown();
             m_Threads.Stop();
             return false;
         }
@@ -50,6 +67,7 @@ namespace Sick::Backend
         if (!m_Initialized.exchange(false, std::memory_order_acq_rel))
             return;
 
+        m_Configs.Shutdown();
         ResetGameState();
         static_cast<void>(m_Settings.SaveAsync(m_Threads, m_FileSystem.SettingsFile()));
         System::Logger::Get().Write("backend core shutting down");
@@ -60,6 +78,7 @@ namespace Sick::Backend
     void BackendCore::ResetGameState() noexcept
     {
         m_CallHub.Reset();
+        m_Features.Reset();
         m_Fibers.Clear();
         m_NativeReady.store(false, std::memory_order_release);
         m_ScriptReady.store(false, std::memory_order_release);
@@ -75,28 +94,33 @@ namespace Sick::Backend
         m_NativeReady.store(nativeReady, std::memory_order_release);
         m_ScriptReady.store(scriptReady, std::memory_order_release);
 
+        if (const auto profile = m_Configs.TakePendingProfile())
+            m_Features.ApplyProfile(*profile);
+
+        // Persistent feature state gets the first game-thread slice. This keeps
+        // state maintenance independent from arbitrary queued command backlogs.
+        m_Features.Tick(nativeReady);
+
+        const auto afterFeatures = ElapsedMicros(start);
+        const auto callBudget = afterFeatures < m_MaxBackendMicros
+            ? m_MaxBackendMicros - afterFeatures
+            : 0;
         const auto callStats = m_CallHub.Tick(
             m_MaxGameJobsPerTick,
-            m_MaxBackendMicros,
+            callBudget,
             nativeReady,
             scriptReady);
 
-        const auto afterCalls = static_cast<std::uint64_t>(
-            std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now() - start).count());
-        const auto remainingMicros = afterCalls < m_MaxBackendMicros
+        const auto afterCalls = ElapsedMicros(start);
+        const auto fiberBudget = afterCalls < m_MaxBackendMicros
             ? m_MaxBackendMicros - afterCalls
             : 0;
-
         const auto fiberResumes = m_Fibers.Tick(
             m_MaxFiberResumesPerTick,
-            remainingMicros);
+            fiberBudget);
 
-        const auto elapsed = static_cast<std::uint64_t>(
-            std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now() - start).count());
         m_Performance.Record(
-            elapsed,
+            ElapsedMicros(start),
             m_MaxBackendMicros,
             callStats.executed,
             fiberResumes);
@@ -124,24 +148,40 @@ namespace Sick::Backend
 
     void BackendCore::SetGodMode(bool enabled) noexcept
     {
-        m_CallHub.SetGodMode(enabled);
+        m_Features.SetGodMode(enabled);
+    }
+
+    bool BackendCore::SaveProfile(std::string_view name)
+    {
+        return m_Configs.Save(name, m_Features.Profile());
+    }
+
+    bool BackendCore::LoadProfile(std::string_view name)
+    {
+        return m_Configs.Load(name);
     }
 
     BackendSnapshot BackendCore::Snapshot() const noexcept
     {
-        const auto player = m_CallHub.PlayerSnapshot();
+        const auto player = m_Features.PlayerSnapshot();
         const auto performance = m_Performance.Snapshot();
         return {
             .initialized = m_Initialized.load(std::memory_order_acquire),
             .nativeReady = m_NativeReady.load(std::memory_order_acquire),
             .scriptReady = m_ScriptReady.load(std::memory_order_acquire),
-            .godModeRequested = player.godModeRequested,
-            .godModeActive = player.godModeActive,
-            .pendingGameCalls = m_CallHub.Pending(),
-            .pendingFibers = m_Fibers.Pending(),
-            .lastTickMicros = performance.lastTickMicros,
-            .maxTickMicros = performance.maxTickMicros,
-            .overBudgetTicks = performance.overBudgetTicks,
+            .player = player,
+            .queues = {
+                .gameCalls = m_CallHub.Pending(),
+                .fibers = m_Fibers.Pending(),
+                .background = m_Threads.Pending(),
+            },
+            .performance = {
+                .lastTickMicros = performance.lastTickMicros,
+                .maxTickMicros = performance.maxTickMicros,
+                .overBudgetTicks = performance.overBudgetTicks,
+                .lastJobs = performance.lastJobs,
+                .lastFiberResumes = performance.lastFiberResumes,
+            },
         };
     }
 }

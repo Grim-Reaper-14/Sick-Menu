@@ -22,5 +22,12 @@ namespace Sick::Frontend
     FrontendCore::FrontendCore()
         : m_Menu(MakeCallbacks())
     {
+        Tick();
+    }
+
+    void FrontendCore::Tick() noexcept
+    {
+        const auto snapshot = Backend::BackendApi::Get().Snapshot();
+        m_Menu.State().godMode = snapshot.player.godMode.requested;
     }
 }

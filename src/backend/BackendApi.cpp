@@ -17,6 +17,16 @@ namespace Sick::Backend
         BackendCore::Get().SetGodMode(enabled);
     }
 
+    bool BackendApi::SaveProfile(std::string_view name)
+    {
+        return BackendCore::Get().SaveProfile(name);
+    }
+
+    bool BackendApi::LoadProfile(std::string_view name)
+    {
+        return BackendCore::Get().LoadProfile(name);
+    }
+
     bool BackendApi::RunScriptVmTest()
     {
         return BackendCore::Get().QueueScript([] {

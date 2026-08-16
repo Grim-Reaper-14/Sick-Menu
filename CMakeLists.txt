@@ -1,11 +1,23 @@
 cmake_minimum_required(VERSION 4.2)
-project(SickMenu VERSION 0.4.0 LANGUAGES CXX)
+project(SickMenu VERSION 0.5.0 LANGUAGES CXX)
+
+include(FetchContent)
+
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(nlohmann_json)
 
 add_library(sick_native STATIC
     src/backend/BackendApi.cpp
     src/backend/BackendCore.cpp
     src/backend/calls/GameCallHub.cpp
+    src/backend/features/FeatureManager.cpp
     src/backend/features/PlayerFeatures.cpp
+    src/backend/system/ConfigManager.cpp
     src/backend/system/FileSystem.cpp
     src/backend/system/Logger.cpp
     src/backend/system/PerformanceMonitor.cpp
@@ -36,6 +48,7 @@ add_library(sick_native STATIC
 
 target_include_directories(sick_native PUBLIC src)
 target_compile_features(sick_native PUBLIC cxx_std_20)
+target_link_libraries(sick_native PRIVATE nlohmann_json::nlohmann_json)
 
 if(WIN32)
     target_compile_definitions(sick_native PUBLIC _WIN32_WINNT=0x0601)
@@ -52,8 +65,6 @@ if(SICK_MENU_BUILD_DLL)
     if(NOT WIN32 OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
         message(FATAL_ERROR "SickMenu.dll requires 64-bit Windows")
     endif()
-
-    include(FetchContent)
 
     FetchContent_Declare(
         imgui
@@ -159,4 +170,11 @@ if(SICK_NATIVE_BUILD_TESTS)
     target_link_libraries(backend_tasking_tests PRIVATE sick_native)
     target_compile_features(backend_tasking_tests PRIVATE cxx_std_20)
     add_test(NAME backend_tasking_tests COMMAND backend_tasking_tests)
+
+    add_executable(backend_config_tests
+        tests/backend_config_tests.cpp
+    )
+    target_link_libraries(backend_config_tests PRIVATE sick_native)
+    target_compile_features(backend_config_tests PRIVATE cxx_std_20)
+    add_test(NAME backend_config_tests COMMAND backend_config_tests)
 endif()
