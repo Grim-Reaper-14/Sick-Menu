@@ -69,6 +69,7 @@ int main()
     assert(player.LocalPed() == 99);
     assert(player.Exists());
     player.SetInvincible(true);
+    EnhancedGame::Tick();
     assert(g_LastEntity == 99);
     assert(g_LastInvincible);
 
@@ -78,6 +79,10 @@ int main()
     EnhancedGame::Tick();
     assert(scheduled);
     assert(GameScheduler::Get().Pending() == 0);
+
+    player.SetInvincible(false);
+    EnhancedGame::Tick();
+    assert(!g_LastInvincible);
 
     const auto stats = NativeSystem::Stats();
     assert(stats.calls >= 4);

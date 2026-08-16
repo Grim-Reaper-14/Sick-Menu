@@ -1,6 +1,7 @@
 #include "EnhancedGame.hpp"
 #include "game/natives/NativeSystem.hpp"
 #include "game/scheduler/GameScheduler.hpp"
+#include "game/services/PlayerService.hpp"
 
 namespace Sick::Game::Enhanced
 {
@@ -61,6 +62,7 @@ namespace Sick::Game::Enhanced
     void EnhancedGame::Shutdown() noexcept
     {
         GameScheduler::Get().Clear();
+        PlayerService{}.Reset();
         ScriptGlobal::ResetResolver();
         EnhancedScriptHost::Shutdown();
         Natives::NativeSystem::Shutdown();
@@ -72,6 +74,8 @@ namespace Sick::Game::Enhanced
         // injected host owns the game-thread tick even while either backend is
         // still coming online, and each backend independently fails closed.
         GameScheduler::Get().Tick();
+        if (Natives::NativeSystem::Ready())
+            PlayerService{}.Tick();
     }
 
     bool EnhancedGame::Ready() noexcept

@@ -10,5 +10,7 @@ namespace Sick::Game
         [[nodiscard]] Ped LocalPed() const noexcept;
         [[nodiscard]] bool Exists() const noexcept;
         void SetInvincible(bool enabled) const noexcept;
+        void Tick() const noexcept;
+        void Reset() const noexcept;
     };
 }

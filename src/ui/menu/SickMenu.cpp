@@ -31,13 +31,8 @@ namespace Sick::Ui
             "GodMode",
             m_State.godMode,
             [callback = std::move(godModeCallback)](bool enabled) mutable {
-                auto featureCallback = callback;
-                Game::GameScheduler::Get().Queue(
-                    [enabled, callback = std::move(featureCallback)]() mutable {
-                        Game::PlayerService{}.SetInvincible(enabled);
-                        if (callback)
-                            callback(enabled);
-                    });
+                Game::PlayerService{}.SetInvincible(enabled);
+                QueueCallback(callback, enabled);
             });
 
         m_SelfPage.AddToggle(
