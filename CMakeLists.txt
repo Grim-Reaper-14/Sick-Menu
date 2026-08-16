@@ -12,6 +12,9 @@ add_library(sick_native STATIC
     src/game/natives/NativeResolver.cpp
     src/game/natives/NativeSystem.cpp
     src/game/scheduler/GameScheduler.cpp
+    src/game/scripts/ScriptFunction.cpp
+    src/game/scripts/ScriptPointer.cpp
+    src/game/scripts/ScriptRuntime.cpp
     src/game/services/PlayerService.cpp
 )
 
@@ -43,4 +46,11 @@ if(SICK_NATIVE_BUILD_TESTS)
     target_link_libraries(reaper_indexed_backend_tests PRIVATE sick_native)
     target_compile_features(reaper_indexed_backend_tests PRIVATE cxx_std_20)
     add_test(NAME reaper_indexed_backend_tests COMMAND reaper_indexed_backend_tests)
+
+    add_executable(script_function_tests
+        tests/script_function_tests.cpp
+    )
+    target_link_libraries(script_function_tests PRIVATE sick_native)
+    target_compile_features(script_function_tests PRIVATE cxx_std_20)
+    add_test(NAME script_function_tests COMMAND script_function_tests)
 endif()

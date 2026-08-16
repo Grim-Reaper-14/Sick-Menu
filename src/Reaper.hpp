@@ -9,6 +9,10 @@
 #include "game/natives/NativeHandlerTable.hpp"
 #include "game/natives/generated/NativeIndex.hpp"
 #include "game/scheduler/GameScheduler.hpp"
+#include "game/scripts/ScriptFunction.hpp"
+#include "game/scripts/ScriptPointer.hpp"
+#include "game/scripts/ScriptRuntime.hpp"
+#include "game/scripts/ScriptTypes.hpp"
 
 namespace Reaper
 {
@@ -20,6 +24,16 @@ namespace Reaper
     using Object = Sick::Game::Object;
     using Player = Sick::Game::Player;
     using ScriptGlobal = Sick::Game::Enhanced::ScriptGlobal;
+    using ScriptHash = Sick::Game::Scripts::ScriptHash;
+    using ScriptFunction = Sick::Game::Scripts::ScriptFunction;
+    using ScriptPattern = Sick::Game::Scripts::ScriptPattern;
+    using ScriptPointer = Sick::Game::Scripts::ScriptPointer;
+    using ScriptProgramView = Sick::Game::Scripts::ScriptProgramView;
+
+    [[nodiscard]] constexpr ScriptHash Joaat(std::string_view value) noexcept
+    {
+        return Sick::Game::Scripts::Joaat(value);
+    }
 
     namespace PLAYER = Sick::Game::Natives::PLAYER;
     namespace ENTITY = Sick::Game::Natives::ENTITY;
@@ -48,6 +62,7 @@ namespace Reaper
         using NativeBootstrap = Sick::Game::Enhanced::NativeBootstrap;
         using NativeTable = Sick::Game::Enhanced::NativeTable;
         using Game = Sick::Game::Enhanced::EnhancedGame;
+        using ScriptRuntime = Sick::Game::Scripts::ScriptRuntime;
     }
 
     using Scheduler = Sick::Game::GameScheduler;

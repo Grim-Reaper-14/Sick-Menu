@@ -10,6 +10,7 @@ namespace Sick::Game::Enhanced
         NativeTable::HashMapperFn mapper) noexcept
     {
         GameScheduler::Get().Clear();
+        Scripts::ScriptRuntime::Get().Reset();
         return Natives::NativeSystem::Initialize(build, lookup, mapper);
     }
 
@@ -19,6 +20,7 @@ namespace Sick::Game::Enhanced
         NativeBootstrap::HashMapperFn mapper) noexcept
     {
         GameScheduler::Get().Clear();
+        Scripts::ScriptRuntime::Get().Reset();
         return Natives::NativeSystem::InitializeIndexed(build, provider, mapper);
     }
 
@@ -27,10 +29,23 @@ namespace Sick::Game::Enhanced
         ScriptGlobal::BindResolver(resolver);
     }
 
+    bool EnhancedGame::BindScriptRuntime(
+        Scripts::ScriptRuntime::ProgramResolverFn programResolver,
+        Scripts::ScriptRuntime::InvokeFn invoker) noexcept
+    {
+        return Scripts::ScriptRuntime::Get().Configure(programResolver, invoker);
+    }
+
+    bool EnhancedGame::ScriptFunctionsReady() noexcept
+    {
+        return Scripts::ScriptRuntime::Get().Ready();
+    }
+
     void EnhancedGame::Shutdown() noexcept
     {
         GameScheduler::Get().Clear();
         ScriptGlobal::ResetResolver();
+        Scripts::ScriptRuntime::Get().Reset();
         Natives::NativeSystem::Shutdown();
     }
 
