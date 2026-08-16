@@ -18,6 +18,9 @@ add_library(sick_native STATIC
     src/game/scripts/ScriptPointer.cpp
     src/game/scripts/ScriptRuntime.cpp
     src/game/services/PlayerService.cpp
+    src/ui/menu/Menu.cpp
+    src/ui/menu/MenuRenderer.cpp
+    src/ui/menu/SickMenu.cpp
 )
 
 target_include_directories(sick_native PUBLIC src)
@@ -62,4 +65,11 @@ if(SICK_NATIVE_BUILD_TESTS)
     target_link_libraries(enhanced_script_host_tests PRIVATE sick_native)
     target_compile_features(enhanced_script_host_tests PRIVATE cxx_std_20)
     add_test(NAME enhanced_script_host_tests COMMAND enhanced_script_host_tests)
+
+    add_executable(sick_menu_tests
+        tests/menu_tests.cpp
+    )
+    target_link_libraries(sick_menu_tests PRIVATE sick_native)
+    target_compile_features(sick_menu_tests PRIVATE cxx_std_20)
+    add_test(NAME sick_menu_tests COMMAND sick_menu_tests)
 endif()

@@ -15,6 +15,9 @@
 #include "game/scripts/ScriptPointer.hpp"
 #include "game/scripts/ScriptRuntime.hpp"
 #include "game/scripts/ScriptTypes.hpp"
+#include "ui/menu/Menu.hpp"
+#include "ui/menu/MenuRenderer.hpp"
+#include "ui/menu/SickMenu.hpp"
 
 namespace Reaper
 {
@@ -75,4 +78,20 @@ namespace Reaper
     }
 
     using Scheduler = Sick::Game::GameScheduler;
+
+    namespace UI
+    {
+        using MenuInput = Sick::Ui::MenuInput;
+        using MenuOption = Sick::Ui::MenuOption;
+        using MenuPage = Sick::Ui::MenuPage;
+        using MenuController = Sick::Ui::MenuController;
+        using MenuRenderer = Sick::Ui::MenuRenderer;
+        using MenuStyle = Sick::Ui::MenuStyle;
+        using MenuViewport = Sick::Ui::MenuViewport;
+        using MenuDrawList = Sick::Ui::MenuDrawList;
+        using MenuTexture = Sick::Ui::MenuTexture;
+        using SickMenu = Sick::Ui::SickMenu;
+        using SickMenuState = Sick::Ui::SickMenuState;
+        using SickMenuCallbacks = Sick::Ui::SickMenuCallbacks;
+    }
 }

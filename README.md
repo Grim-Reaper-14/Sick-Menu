@@ -118,6 +118,49 @@ are the source reference for reviewing the target functions after game
 updates; the decompiled files themselves are not compiled, executed, or
 vendored by this project.
 
+## Menu UI
+
+`Reaper::UI::SickMenu` implements the compact menu shown in the project
+reference: navy branded header, black page bar and counter, dark option rows,
+white selection, magenta toggle indicators, right-aligned values, and footer
+chevrons. It includes wrapping keyboard/controller-style navigation and the
+action, toggle, integer, choice, label, and submenu option types.
+
+The core renderer emits dependency-free draw commands. A host that already has
+a Dear ImGui frame can submit those commands and poll the default Insert,
+arrow, Enter, and Backspace bindings with one call:
+
+```cpp
+#include "Reaper.hpp"
+#include "ui/menu/ImGuiMenuBackend.hpp"
+
+Reaper::UI::SickMenu menu{
+    Reaper::UI::SickMenuCallbacks{
+        .regularAction = [] {
+            // Bind and call the appropriate Reaper::ScriptFunction here.
+            // This callback is already running on the game scheduler thread.
+        }
+    }};
+
+void DrawImGuiFrame()
+{
+    Sick::Ui::ImGuiMenuBackend::Render(menu);
+}
+
+void GameThreadTick()
+{
+    Reaper::Scheduler::Get().Tick();
+}
+```
+
+The supplied Self page matches the reference layout and exposes callbacks for
+each feature row. GodMode is connected to `PlayerService::SetInvincible` by
+default; other feature callbacks can invoke typed natives or the existing
+script-function catalog. Every feature callback is queued onto `GameScheduler`
+instead of executing a script VM call from the render thread. A host-provided
+header texture replaces the fallback Sick Menu mark through
+`SickMenu::SetHeaderTexture()`.
+
 ## Backend components
 
 - `src/game/enhanced/` - Enhanced build integration, indexed bootstrap, script-global facade, and lifecycle.
@@ -125,6 +168,7 @@ vendored by this project.
 - `src/game/scripts/` - JOAAT hashing, bytecode patterns, script pointers, runtime binding, and typed script-function calls.
 - `src/game/scheduler/` - gameplay job queue separated from UI/render callbacks.
 - `src/game/services/` - higher-level gameplay services built on typed natives.
+- `src/ui/menu/` - menu state, navigation, reference theme, draw commands, and optional ImGui adapter.
 - `src/Reaper.hpp` - public API facade.
 
 ## Tests
