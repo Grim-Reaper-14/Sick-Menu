@@ -35,9 +35,15 @@ namespace Sick::Game::Natives
             return NativeInvoker::Invoke<NativeIndex::DOES_ENTITY_EXIST, bool, false>(entity);
         }
 
-        inline void SET_ENTITY_INVINCIBLE(Entity entity, bool toggle) noexcept
+        inline void SET_ENTITY_INVINCIBLE(
+            Entity entity,
+            bool toggle,
+            bool dontResetOnCleanup = false) noexcept
         {
-            NativeInvoker::Invoke<NativeIndex::SET_ENTITY_INVINCIBLE, void, false>(entity, toggle);
+            NativeInvoker::Invoke<NativeIndex::SET_ENTITY_INVINCIBLE, void, false>(
+                entity,
+                toggle,
+                dontResetOnCleanup);
         }
     }
 }

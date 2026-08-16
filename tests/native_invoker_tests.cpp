@@ -24,9 +24,10 @@ namespace
 
     void SetInvincibleHandler(NativeCallContext* context)
     {
-        assert(context->ArgumentCount() == 2);
+        assert(context->ArgumentCount() == 3);
         g_LastEntity = context->GetArgument<Entity>(0);
         g_LastInvincible = context->GetArgument<bool>(1);
+        assert(!context->GetArgument<bool>(2));
     }
 
     NativeHandler ResolveForTest(NativeHash hash)

@@ -118,6 +118,22 @@ are the source reference for reviewing the target functions after game
 updates; the decompiled files themselves are not compiled, executed, or
 vendored by this project.
 
+## Injected DLL host
+
+The Windows target is now a real 64-bit `SickMenu.dll`, not an external
+preview process. On injection it verifies that the current process is exactly
+`GTA5_Enhanced.exe`, discovers the game's D3D12 swap chain and command queue,
+subclasses the GTA window procedure, and hooks `Present`, `ResizeBuffers`, and
+the Enhanced script-thread runner. Dear ImGui rendering stays on the D3D12
+present path; queued natives and script functions execute from the game script
+tick.
+
+The native bridge resolves the generated Enhanced handlers through GTA's
+`InitNativeTables` routine on the game thread. The Script VM bridge retries
+until the live script tables are available. Press `Insert` to open/close the
+menu and `End` to cleanly remove hooks and unload the DLL. `Regular Option`
+runs a read-only Script VM smoke test and reports the result to the debugger.
+
 ## Menu UI
 
 `Reaper::UI::SickMenu` implements the compact menu shown in the project
@@ -126,9 +142,9 @@ white selection, magenta toggle indicators, right-aligned values, and footer
 chevrons. It includes wrapping keyboard/controller-style navigation and the
 action, toggle, integer, choice, label, and submenu option types.
 
-The core renderer emits dependency-free draw commands. A host that already has
-a Dear ImGui frame can submit those commands and poll the default Insert,
-arrow, Enter, and Backspace bindings with one call:
+The core renderer emits dependency-free draw commands. The injected host now
+submits those commands to its own Dear ImGui/D3D12 frame. Other hosts can still
+use the adapter directly:
 
 ```cpp
 #include "Reaper.hpp"
@@ -173,12 +189,22 @@ header texture replaces the fallback Sick Menu mark through
 
 ## Tests
 
-```text
-cmake -S . -B build -DSICK_NATIVE_BUILD_TESTS=ON
-cmake --build build
-ctest --test-dir build
+Visual Studio 2026 x64 (CMake generator `Visual Studio 18 2026`) is the
+supported Windows build and requires CMake 4.2 or newer. GTA V Enhanced is
+64-bit, so Win32 and ARM64 DLL targets are intentionally unsupported.
+
+```powershell
+cmake --preset vs2026-x64
+cmake --build --preset vs2026-release
+ctest --preset vs2026-release
 ```
+
+The release DLL is written to
+`build/vs2026-x64/bin/Release/SickMenu.dll`. Use the `vs2026-debug` build and
+test presets for Debug coverage.
 
 The tests use mock native handlers/providers and do not require GTA to be running.
 
-This project targets local/single-player mod development. Do not use it to bypass multiplayer protections or interfere with other players.
+This project targets local/single-player mod development. The DLL contains no
+anti-cheat bypass. Do not use it to bypass multiplayer protections or interfere
+with other players.

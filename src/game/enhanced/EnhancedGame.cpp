@@ -68,9 +68,9 @@ namespace Sick::Game::Enhanced
 
     void EnhancedGame::Tick()
     {
-        if (!Ready())
-            return;
-
+        // Script-function callbacks and native callbacks share this queue. The
+        // injected host owns the game-thread tick even while either backend is
+        // still coming online, and each backend independently fails closed.
         GameScheduler::Get().Tick();
     }
 
