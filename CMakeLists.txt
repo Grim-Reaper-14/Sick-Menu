@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.20)
 project(SickMenu LANGUAGES CXX)
 
 add_library(sick_native STATIC
+    src/core/memory/MemoryManager.cpp
+    src/core/memory/Module.cpp
+    src/core/memory/ModuleManager.cpp
+    src/core/memory/Pattern.cpp
+    src/core/memory/PatternScanner.cpp
     src/game/enhanced/BuildManager.cpp
     src/game/enhanced/EnhancedGame.cpp
     src/game/enhanced/NativeBootstrap.cpp
@@ -23,6 +28,13 @@ option(SICK_NATIVE_BUILD_TESTS "Build Sick native backend tests" OFF)
 
 if(SICK_NATIVE_BUILD_TESTS)
     enable_testing()
+
+    add_executable(memory_manager_tests
+        tests/memory_manager_tests.cpp
+    )
+    target_link_libraries(memory_manager_tests PRIVATE sick_native)
+    target_compile_features(memory_manager_tests PRIVATE cxx_std_20)
+    add_test(NAME memory_manager_tests COMMAND memory_manager_tests)
 
     add_executable(native_crossmap_tests
         tests/native_crossmap_tests.cpp

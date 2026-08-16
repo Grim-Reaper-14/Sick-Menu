@@ -1,4 +1,5 @@
 #include "EnhancedGame.hpp"
+#include "core/memory/MemoryManager.hpp"
 #include "game/natives/NativeSystem.hpp"
 #include "game/scheduler/GameScheduler.hpp"
 
@@ -32,6 +33,7 @@ namespace Sick::Game::Enhanced
         GameScheduler::Get().Clear();
         ScriptGlobal::ResetResolver();
         Natives::NativeSystem::Shutdown();
+        Sick::Memory::MemoryManager::Get().Reset();
     }
 
     void EnhancedGame::Tick()

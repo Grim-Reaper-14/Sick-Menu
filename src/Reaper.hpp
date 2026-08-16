@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/memory/MemoryManager.hpp"
 #include "game/enhanced/BuildManager.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/enhanced/NativeBootstrap.hpp"
@@ -24,6 +25,19 @@ namespace Reaper
 
     namespace PLAYER = Sick::Game::Natives::PLAYER;
     namespace ENTITY = Sick::Game::Natives::ENTITY;
+
+    namespace Memory
+    {
+        using AddressId = Sick::Memory::AddressId;
+        using Manager = Sick::Memory::MemoryManager;
+        using Module = Sick::Memory::Module;
+        using ModuleManager = Sick::Memory::ModuleManager;
+        using Pattern = Sick::Memory::Pattern;
+        using Scanner = Sick::Memory::PatternScanner;
+        using Pointer = Sick::Memory::PointerCalculator;
+        using ScanDiagnostic = Sick::Memory::ScanDiagnostic;
+        using ScanSummary = Sick::Memory::ScanSummary;
+    }
 
     namespace Native
     {
