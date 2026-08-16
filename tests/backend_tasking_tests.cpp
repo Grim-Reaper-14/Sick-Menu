@@ -47,7 +47,7 @@ namespace
             assert(CurrentTaskAffinity() == TaskAffinity::Game);
             assert(GameFiberScheduler::InFiber());
             steps.push_back(1);
-            GameFiberScheduler::Yield();
+            GameFiberScheduler::YieldCurrent();
             steps.push_back(2);
             GameFiberScheduler::WaitFor(25ms);
             steps.push_back(3);

@@ -18,7 +18,7 @@
 namespace Sick::Backend::Tasking
 {
     // Stackful cooperative scheduler for multi-tick game-thread operations.
-    // Tasks may call Yield() or WaitFor() without blocking GTA's script thread.
+    // Tasks may call YieldCurrent() or WaitFor() without blocking GTA's script thread.
     class GameFiberScheduler final
     {
     public:
@@ -35,7 +35,7 @@ namespace Sick::Backend::Tasking
         void Clear() noexcept;
         [[nodiscard]] std::size_t Pending() const noexcept;
 
-        static void Yield() noexcept;
+        static void YieldCurrent() noexcept;
         static void WaitFor(std::chrono::milliseconds duration) noexcept;
         [[nodiscard]] static bool InFiber() noexcept;
 

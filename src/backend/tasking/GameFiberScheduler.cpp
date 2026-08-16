@@ -197,7 +197,7 @@ namespace Sick::Backend::Tasking
         return m_Pending.size() + m_Active.load(std::memory_order_acquire);
     }
 
-    void GameFiberScheduler::Yield() noexcept
+    void GameFiberScheduler::YieldCurrent() noexcept
     {
         SuspendCurrentUntil(std::chrono::steady_clock::now());
     }
