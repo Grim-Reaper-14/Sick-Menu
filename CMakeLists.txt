@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(SickMenu LANGUAGES CXX)
 
+if(WIN32)
+    include(cmake/minhook.cmake)
+endif()
+
 add_library(sick_native STATIC
+    src/core/hooking/DetourHook.cpp
+    src/core/hooking/HookManager.cpp
     src/core/memory/MemoryManager.cpp
     src/core/memory/Module.cpp
     src/core/memory/ModuleManager.cpp
@@ -24,10 +30,24 @@ add_library(sick_native STATIC
 target_include_directories(sick_native PUBLIC src)
 target_compile_features(sick_native PUBLIC cxx_std_20)
 
+if(WIN32)
+    target_include_directories(sick_native PRIVATE "${minhook_SOURCE_DIR}/include")
+    target_link_libraries(sick_native PRIVATE minhook)
+endif()
+
 option(SICK_NATIVE_BUILD_TESTS "Build Sick native backend tests" OFF)
 
 if(SICK_NATIVE_BUILD_TESTS)
     enable_testing()
+
+    if(WIN32)
+        add_executable(hook_manager_tests
+            tests/hook_manager_tests.cpp
+        )
+        target_link_libraries(hook_manager_tests PRIVATE sick_native)
+        target_compile_features(hook_manager_tests PRIVATE cxx_std_20)
+        add_test(NAME hook_manager_tests COMMAND hook_manager_tests)
+    endif()
 
     add_executable(memory_manager_tests
         tests/memory_manager_tests.cpp

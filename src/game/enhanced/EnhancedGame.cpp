@@ -1,4 +1,5 @@
 #include "EnhancedGame.hpp"
+#include "core/hooking/HookManager.hpp"
 #include "core/memory/MemoryManager.hpp"
 #include "game/natives/NativeSystem.hpp"
 #include "game/scheduler/GameScheduler.hpp"
@@ -33,6 +34,7 @@ namespace Sick::Game::Enhanced
         GameScheduler::Get().Clear();
         ScriptGlobal::ResetResolver();
         Natives::NativeSystem::Shutdown();
+        Sick::Hooking::HookManager::Get().Shutdown();
         Sick::Memory::MemoryManager::Get().Reset();
     }
 

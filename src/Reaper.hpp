@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/hooking/HookManager.hpp"
 #include "core/memory/MemoryManager.hpp"
 #include "game/enhanced/BuildManager.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
@@ -25,6 +26,14 @@ namespace Reaper
 
     namespace PLAYER = Sick::Game::Natives::PLAYER;
     namespace ENTITY = Sick::Game::Natives::ENTITY;
+
+    namespace Hooking
+    {
+        using Detour = Sick::Hooking::DetourHook;
+        using Manager = Sick::Hooking::HookManager;
+        using Diagnostic = Sick::Hooking::HookDiagnostic;
+        using Operation = Sick::Hooking::HookOperation;
+    }
 
     namespace Memory
     {
