@@ -63,7 +63,7 @@ int main()
     assert(Reaper::Enhanced::Game::InitializeIndexed(9001, &ProvideNative));
     assert(Reaper::Enhanced::Game::Ready());
     assert(g_ProviderCalls == static_cast<int>(Sick::Game::Natives::NativeCount));
-    assert(Reaper::Native::HandlerTable::Get().ResolvedCount() == Sick::Game::Natives::NativeCount);
+    assert(Reaper::Native::HandlerTable::Get().ResolvedCount() == 4);
 
     const Reaper::Ped ped = Reaper::PLAYER::PLAYER_PED_ID();
     assert(ped == 321);

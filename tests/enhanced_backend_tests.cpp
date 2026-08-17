@@ -1,3 +1,5 @@
+#include "backend/BackendApi.hpp"
+#include "backend/BackendCore.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/natives/NativeBackend.hpp"
 #include "game/scheduler/GameScheduler.hpp"
@@ -59,18 +61,37 @@ int main()
     assert(EnhancedGame::Initialize(1234, &Lookup));
     assert(EnhancedGame::Ready());
     assert(BuildManager::Current() == 1234);
-    assert(NativeRegistry::Get().Size() == 4);
+    assert(NativeRegistry::Get().Size() == NativeCount);
 
     const auto playerPed = NativeRegistry::Get().Find("PLAYER_PED_ID");
     assert(playerPed.has_value());
     assert(playerPed->hash == Hashes::PLAYER_PED_ID);
+    const auto superJump = NativeRegistry::Get().Find("SET_SUPER_JUMP_THIS_FRAME");
+    assert(superJump.has_value());
+    assert(superJump->hash == Hashes::SET_SUPER_JUMP_THIS_FRAME);
+
+    const auto idleStats = NativeSystem::Stats();
+    EnhancedGame::Tick();
+    const auto afterIdleStats = NativeSystem::Stats();
+    assert(afterIdleStats.calls == idleStats.calls);
+    assert(afterIdleStats.failed == idleStats.failed);
 
     PlayerService player;
     assert(player.LocalPed() == 99);
-    assert(player.Exists());
-    player.SetInvincible(true);
+    assert(player.Exists(99));
+
+    Sick::Backend::BackendApi::Get().SetGodMode(true);
+    EnhancedGame::Tick();
     assert(g_LastEntity == 99);
     assert(g_LastInvincible);
+    auto snapshot = Sick::Backend::BackendApi::Get().Snapshot();
+    assert(snapshot.player.godMode.requested);
+    assert(snapshot.player.godMode.active);
+
+    const auto activeStats = NativeSystem::Stats();
+    EnhancedGame::Tick();
+    const auto afterRefreshIdle = NativeSystem::Stats();
+    assert(afterRefreshIdle.calls == activeStats.calls);
 
     bool scheduled = false;
     GameScheduler::Get().Queue([&scheduled]() { scheduled = true; });
@@ -78,6 +99,13 @@ int main()
     EnhancedGame::Tick();
     assert(scheduled);
     assert(GameScheduler::Get().Pending() == 0);
+
+    Sick::Backend::BackendApi::Get().SetGodMode(false);
+    EnhancedGame::Tick();
+    assert(!g_LastInvincible);
+    snapshot = Sick::Backend::BackendApi::Get().Snapshot();
+    assert(!snapshot.player.godMode.requested);
+    assert(!snapshot.player.godMode.active);
 
     const auto stats = NativeSystem::Stats();
     assert(stats.calls >= 4);

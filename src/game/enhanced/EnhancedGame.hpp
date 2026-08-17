@@ -1,9 +1,11 @@
 #pragma once
 
 #include "BuildManager.hpp"
+#include "EnhancedScriptHost.hpp"
 #include "NativeBootstrap.hpp"
 #include "NativeTable.hpp"
 #include "ScriptGlobal.hpp"
+#include "game/scripts/ScriptRuntime.hpp"
 
 namespace Sick::Game::Enhanced
 {
@@ -21,6 +23,12 @@ namespace Sick::Game::Enhanced
             NativeBootstrap::HashMapperFn mapper = nullptr) noexcept;
 
         static void BindScriptGlobalResolver(ScriptGlobal::ResolverFn resolver) noexcept;
+        static bool InitializeScriptHost() noexcept;
+        static bool BindScriptHost(EnhancedScriptHost::Bindings bindings) noexcept;
+        static bool BindScriptRuntime(
+            Scripts::ScriptRuntime::ProgramResolverFn programResolver,
+            Scripts::ScriptRuntime::InvokeFn invoker) noexcept;
+        [[nodiscard]] static bool ScriptFunctionsReady() noexcept;
         static void Shutdown() noexcept;
         static void Tick();
         [[nodiscard]] static bool Ready() noexcept;
