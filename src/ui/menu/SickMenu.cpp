@@ -63,7 +63,7 @@ namespace
     };
 
     const std::vector<std::string> PaintTypes{
-        "Normal", "Metallic", "Pearlescent", "Matte", "Metal", "Chrome",
+        "Normal", "Metallic", "Pearlescent", "Matte", "Metal", "Chrome", "Worn", "Chameleon",
     };
 
     const std::vector<std::string> XenonColors{
@@ -235,7 +235,7 @@ namespace Sick::Ui
         m_VehicleCustomizationPage.AddSubmenu("Wheels", m_VehicleWheelsPage)
             .Describe("Wheel family, wheel indexes and bulletproof tire controls.");
         m_VehicleCustomizationPage.AddSubmenu("Paint", m_VehiclePaintPage)
-            .Describe("Primary, secondary, pearlescent, wheel, interior and dashboard colors.");
+            .Describe("Primary, secondary, Worn/Chameleon, pearlescent, wheel, interior and dashboard colors.");
         m_VehicleCustomizationPage.AddSubmenu("Lights & Neon", m_VehicleLightsPage)
             .Describe("Xenon headlights, neon zones/colors and tire-smoke RGB.");
         m_VehicleCustomizationPage.AddSubmenu("Extras", m_VehicleExtrasPage)
@@ -275,23 +275,23 @@ namespace Sick::Ui
         });
 
         m_VehiclePaintPage.AddChoice("Primary Paint Type", m_State.vehiclePrimaryPaintType, PaintTypes, [this, command](std::size_t index) mutable {
-            command(VehicleCustomizationUiCommand::SetPrimaryModColor, static_cast<int>(index), m_State.vehiclePrimaryColor, 0, 0);
+            command(VehicleCustomizationUiCommand::SetPrimaryModColor, static_cast<int>(index), m_State.vehiclePrimaryColor, m_State.vehicleSecondaryColor, 0);
         });
-        m_VehiclePaintPage.AddInteger("Primary Color", m_State.vehiclePrimaryColor, 0, 160, 1, [this, command](int color) mutable {
-            command(VehicleCustomizationUiCommand::SetPrimaryModColor, static_cast<int>(m_State.vehiclePrimaryPaintType), color, 0, 0);
-        });
+        m_VehiclePaintPage.AddInteger("Primary Color", m_State.vehiclePrimaryColor, 0, 222, 1, [this, command](int color) mutable {
+            command(VehicleCustomizationUiCommand::SetPrimaryModColor, static_cast<int>(m_State.vehiclePrimaryPaintType), color, m_State.vehicleSecondaryColor, 0);
+        }).Describe("Legacy colors use 0-160. Chameleon colors use GTA Enhanced IDs 161-222; Worn uses its legacy Worn color IDs.");
         m_VehiclePaintPage.AddChoice("Secondary Paint Type", m_State.vehicleSecondaryPaintType, PaintTypes, [this, command](std::size_t index) mutable {
-            command(VehicleCustomizationUiCommand::SetSecondaryModColor, static_cast<int>(index), m_State.vehicleSecondaryColor, 0, 0);
+            command(VehicleCustomizationUiCommand::SetSecondaryModColor, static_cast<int>(index), m_State.vehicleSecondaryColor, m_State.vehiclePrimaryColor, 0);
         });
-        m_VehiclePaintPage.AddInteger("Secondary Color", m_State.vehicleSecondaryColor, 0, 160, 1, [this, command](int color) mutable {
-            command(VehicleCustomizationUiCommand::SetSecondaryModColor, static_cast<int>(m_State.vehicleSecondaryPaintType), color, 0, 0);
-        });
+        m_VehiclePaintPage.AddInteger("Secondary Color", m_State.vehicleSecondaryColor, 0, 222, 1, [this, command](int color) mutable {
+            command(VehicleCustomizationUiCommand::SetSecondaryModColor, static_cast<int>(m_State.vehicleSecondaryPaintType), color, m_State.vehiclePrimaryColor, 0);
+        }).Describe("Legacy colors use 0-160. Chameleon colors use GTA Enhanced IDs 161-222; Worn uses its legacy Worn color IDs.");
         m_VehiclePaintPage.AddInteger("Pearlescent Color", m_State.vehiclePearlescentColor, 0, 160, 1, [this, command](int color) mutable {
             command(VehicleCustomizationUiCommand::SetExtraColours, color, m_State.vehicleWheelColor, 0, 0);
         });
-        m_VehiclePaintPage.AddInteger("Wheel Color", m_State.vehicleWheelColor, 0, 160, 1, [this, command](int color) mutable {
+        m_VehiclePaintPage.AddInteger("Wheel Color", m_State.vehicleWheelColor, 0, 222, 1, [this, command](int color) mutable {
             command(VehicleCustomizationUiCommand::SetExtraColours, m_State.vehiclePearlescentColor, color, 0, 0);
-        });
+        }).Describe("Supports standard wheel colors and GTA Enhanced Chameleon color IDs 161-222.");
         m_VehiclePaintPage.AddInteger("Interior Color", m_State.vehicleInteriorColor, 0, 160, 1, [command](int color) mutable {
             command(VehicleCustomizationUiCommand::SetInteriorColor, color, 0, 0, 0);
         });

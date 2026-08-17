@@ -13,6 +13,7 @@ namespace Sick::Ui::MenuSettings
         controls.AddLabel("Numpad 4 - Left");
         controls.AddLabel("Numpad 6 - Right");
         controls.AddLabel("Numpad 5 - Select");
-        controls.AddLabel("Backspace - Back");
+        controls.AddLabel("Numpad 0 - Back");
+        controls.AddLabel("Backspace - Back (alternate)");
     }
 }

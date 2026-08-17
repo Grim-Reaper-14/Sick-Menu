@@ -81,6 +81,7 @@ namespace Sick::Backend
         constexpr Sick::Game::Natives::NativeHash SetVehicleWheelTypeHash = 0xE33678A9AE50A01BULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleModColor1Hash = 0xA5277ECCD081FCC1ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleModColor2Hash = 0x941B1F179D6AE19AULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleColoursHash = 0x4F1D4BE3A7F24601ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleExtraColoursHash = 0xBB361D7264AC4FD8ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleInteriorColorHash = 0xC0C8E6AAA00F1A58ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleDashboardColorHash = 0x77B012A683295B6EULL;
@@ -259,6 +260,15 @@ namespace Sick::Backend
                 static_cast<void>(Invoker::TryCallVoid(SetVehicleWheelTypeHash, vehicle, std::clamp(a, 0, 12)));
                 return;
             case VehicleCustomizationCommand::SetPrimaryModColor:
+                if (a >= 6)
+                {
+                    static_cast<void>(Invoker::TryCallVoid(
+                        SetVehicleColoursHash,
+                        vehicle,
+                        std::clamp(b, 0, 222),
+                        std::clamp(c, 0, 222)));
+                    return;
+                }
                 static_cast<void>(Invoker::TryCallVoid(
                     SetVehicleModColor1Hash,
                     vehicle,
@@ -267,6 +277,15 @@ namespace Sick::Backend
                     0));
                 return;
             case VehicleCustomizationCommand::SetSecondaryModColor:
+                if (a >= 6)
+                {
+                    static_cast<void>(Invoker::TryCallVoid(
+                        SetVehicleColoursHash,
+                        vehicle,
+                        std::clamp(c, 0, 222),
+                        std::clamp(b, 0, 222)));
+                    return;
+                }
                 static_cast<void>(Invoker::TryCallVoid(
                     SetVehicleModColor2Hash,
                     vehicle,
@@ -278,7 +297,7 @@ namespace Sick::Backend
                     SetVehicleExtraColoursHash,
                     vehicle,
                     std::clamp(a, 0, 160),
-                    std::clamp(b, 0, 160)));
+                    std::clamp(b, 0, 222)));
                 return;
             case VehicleCustomizationCommand::SetInteriorColor:
                 static_cast<void>(Invoker::TryCallVoid(SetVehicleInteriorColorHash, vehicle, std::clamp(a, 0, 160)));

@@ -169,7 +169,7 @@ namespace Sick::Runtime
             return false;
 
         m_Ready = true;
-        Log::Write("D3D12 renderer ready; F4 toggles menu, Numpad 8/2/4/6 navigates, Numpad 5 selects");
+        Log::Write("D3D12 renderer ready; F4 toggles menu, Numpad 8/2/4/6 navigates, Numpad 5 selects, Numpad 0 goes back");
         return true;
     }
 
@@ -229,7 +229,7 @@ namespace Sick::Runtime
             menu.Handle(Ui::MenuInput::Right);
         if (pressed(VK_NUMPAD5))
             menu.Handle(Ui::MenuInput::Select);
-        if (pressed(VK_BACK))
+        if (pressed(VK_NUMPAD0) || pressed(VK_INSERT) || pressed(VK_BACK))
             menu.Handle(Ui::MenuInput::Back);
     }
 
