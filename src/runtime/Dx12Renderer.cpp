@@ -229,7 +229,7 @@ namespace Sick::Runtime
             menu.Handle(Ui::MenuInput::Right);
         if (pressed(VK_NUMPAD5))
             menu.Handle(Ui::MenuInput::Select);
-        if (pressed(VK_NUMPAD0) || pressed(VK_INSERT) || pressed(VK_BACK))
+        if (pressed(VK_NUMPAD0))
             menu.Handle(Ui::MenuInput::Back);
     }
 

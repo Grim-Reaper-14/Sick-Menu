@@ -74,24 +74,24 @@ namespace Sick::Backend
             reward[6] = 0;
         }
 
-        constexpr Sick::Game::Natives::NativeHash SetVehicleModKitHash = 0xB5AD06DDA85E2E8FULL;
-        constexpr Sick::Game::Natives::NativeHash GetNumVehicleModsHash = 0x5B59C12A02157D00ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleModHash = 0x8450270DC5896D39ULL;
-        constexpr Sick::Game::Natives::NativeHash ToggleVehicleModHash = 0xF5501FF9869DAC7CULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleWheelTypeHash = 0xE33678A9AE50A01BULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleModColor1Hash = 0xA5277ECCD081FCC1ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleModColor2Hash = 0x941B1F179D6AE19AULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleModKitHash = 0x1F2AA07F00B3217AULL;
+        constexpr Sick::Game::Natives::NativeHash GetNumVehicleModsHash = 0xE38E9162A2500646ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleModHash = 0x6AF0636DDEDCB6DDULL;
+        constexpr Sick::Game::Natives::NativeHash ToggleVehicleModHash = 0x2A1F4F37F95BAD08ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleWheelTypeHash = 0x487EB21CC7295BA1ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleModColor1Hash = 0x43FEB945EE7F85B8ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleModColor2Hash = 0x816562BADFDEC83EULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleColoursHash = 0x4F1D4BE3A7F24601ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleExtraColoursHash = 0xBB361D7264AC4FD8ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleInteriorColorHash = 0xC0C8E6AAA00F1A58ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleDashboardColorHash = 0x77B012A683295B6EULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleNeonEnabledHash = 0xE62930EC6FAABCA5ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleNeonColourHash = 0xEAB8A43F6621850FULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleTireSmokeColorHash = 0x5DA0536AEAD1FF31ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleXenonColorHash = 0x89D1FDCA3735A1E0ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleExtraHash = 0xD772F6AA66750D2BULL;
-        constexpr Sick::Game::Natives::NativeHash DoesExtraExistHash = 0x579FA5568DE0C2A0ULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleTyresCanBurstHash = 0x439C904840715871ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleExtraColoursHash = 0x2036F561ADD12E33ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleInteriorColorHash = 0xF40DD601A65F7F19ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleDashboardColorHash = 0x6089CDF6A57F326CULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleNeonEnabledHash = 0x2AA720E4287BF269ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleNeonColourHash = 0x8E0A582209A62695ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleTireSmokeColorHash = 0xB5BA80F839791C0FULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleXenonColorHash = 0xE41033B25D003A07ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleExtraHash = 0x7EE3A3C5E4A40CC9ULL;
+        constexpr Sick::Game::Natives::NativeHash DoesExtraExistHash = 0x1262D55792428154ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleTyresCanBurstHash = 0xEB9DC3C7D8596C46ULL;
     }
 
     BackendCore& BackendCore::Get() noexcept
