@@ -5,17 +5,55 @@
 #include "backend/BackendApi.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/enhanced/EnhancedScriptHost.hpp"
+#include "game/natives/NativeContext.hpp"
+#include "game/natives/generated/NativeHashes.hpp"
 
 #include <MinHook.h>
 #include <array>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <cwchar>
 #include <string>
 #include <thread>
 
 namespace
 {
+    using NativeHandler = Sick::Game::Natives::NativeHandler;
+
     constexpr std::wstring_view GameExecutable = L"GTA5_Enhanced.exe";
+    constexpr Sick::Game::Enhanced::BuildId ReferenceEnhancedBuild = 115813;
+
+    std::array<NativeHandler, Sick::Game::Natives::NativeCount> g_RuntimeNativeHandlers{};
+
+    static_assert(offsetof(Sick::Game::Enhanced::LiveScriptProgram, nativeCount) == 0x2C);
+    static_assert(offsetof(Sick::Game::Enhanced::LiveScriptProgram, nativeEntrypoints) == 0x40);
+
+    NativeHandler ResolveRuntimeNative(
+        Sick::Game::NativeHash hash,
+        Sick::Game::Enhanced::BuildId) noexcept
+    {
+        const auto index = Sick::Game::Natives::Generated::IndexForHash(hash);
+        const auto offset = Sick::Game::Natives::ToNativeOffset(index);
+        return offset < g_RuntimeNativeHandlers.size() ? g_RuntimeNativeHandlers[offset] : nullptr;
+    }
+
+    [[nodiscard]] bool IsExecutableAddress(const void* address) noexcept
+    {
+        if (!address)
+            return false;
+
+        MEMORY_BASIC_INFORMATION information{};
+        if (VirtualQuery(address, &information, sizeof(information)) != sizeof(information))
+            return false;
+        if (information.State != MEM_COMMIT || (information.Protect & PAGE_GUARD) != 0 ||
+            (information.Protect & PAGE_NOACCESS) != 0)
+            return false;
+
+        const auto protection = information.Protect & 0xFFU;
+        return protection == PAGE_EXECUTE || protection == PAGE_EXECUTE_READ ||
+            protection == PAGE_EXECUTE_READWRITE || protection == PAGE_EXECUTE_WRITECOPY;
+    }
 
     [[nodiscard]] bool IsEnhancedProcess()
     {
@@ -106,10 +144,63 @@ namespace Sick::Runtime
 
     bool GtaRuntime::InitializeNativeBackend()
     {
+        // This function is intentionally reached from RunScriptThreadsHook rather
+        // than the DLL bootstrap thread. InitNativeTables operates on script
+        // program metadata, so resolving the scratch table from the game thread
+        // keeps it in the same execution context as GTA's script runtime.
         m_NativeBootstrapFinalized = true;
+        Log::Write("initializing native backend from game thread");
+
+        using InitNativeTablesFn = void (*)(Game::Enhanced::LiveScriptProgram*);
+        if (!m_InitNativeTablesAddress || !IsExecutableAddress(m_InitNativeTablesAddress))
+        {
+            Log::Write("native backend initialization failed: InitNativeTables address is not executable");
+            return false;
+        }
+
+        // InitNativeTables expects each native slot to contain the original
+        // native hash. GTA replaces each slot in place with the corresponding
+        // executable handler. The previous runtime fed a small set of already
+        // cross-mapped values instead, which did not match that contract.
+        auto entries = Game::Natives::Generated::NativeHashes;
+        g_RuntimeNativeHandlers.fill(nullptr);
+
+        Game::Enhanced::LiveScriptProgram program{};
+        program.nativeCount = static_cast<std::uint32_t>(entries.size());
+        program.nativeEntrypoints = entries.data();
+
+        reinterpret_cast<InitNativeTablesFn>(m_InitNativeTablesAddress)(&program);
+
+        for (std::size_t index = 0; index < entries.size(); ++index)
+        {
+            const auto handlerAddress = reinterpret_cast<void*>(
+                static_cast<std::uintptr_t>(entries[index]));
+            if (!IsExecutableAddress(handlerAddress))
+            {
+                g_RuntimeNativeHandlers.fill(nullptr);
+                Log::Write(
+                    "native backend initialization failed: native index " +
+                    std::to_string(index) + " did not resolve to executable memory");
+                return false;
+            }
+
+            g_RuntimeNativeHandlers[index] = reinterpret_cast<NativeHandler>(handlerAddress);
+        }
+
+        const bool initialized = Game::Enhanced::EnhancedGame::InitializeIndexed(
+            ReferenceEnhancedBuild,
+            &ResolveRuntimeNative);
+        if (!initialized)
+        {
+            g_RuntimeNativeHandlers.fill(nullptr);
+            Log::Write("native backend initialization failed: indexed handler table rejected");
+            return false;
+        }
+
         Log::Write(
-            "native backend held disabled: GTA Enhanced InitNativeTables contract is not fully verified");
-        return false;
+            "native backend ready: " + std::to_string(entries.size()) + "/" +
+            std::to_string(Game::Natives::NativeCount) + " handlers resolved");
+        return true;
     }
 
     bool GtaRuntime::InstallHooks()
@@ -184,10 +275,12 @@ namespace Sick::Runtime
             return false;
         }
 
-        // Do not attempt GTA's native table initializer while the Enhanced
-        // table layout/mapping contract is incomplete. Native-backed features
-        // remain unavailable instead of risking a process crash.
-        static_cast<void>(InitializeNativeBackend());
+        // Native resolution is deferred until RunScriptThreadsHook has executed
+        // inside GTA's script thread. This preserves the stable bootstrap/render
+        // behavior while still allowing the native backend to become available.
+        m_NativeBootstrapFinalized = false;
+        m_NativeBackendRetry = 0;
+        Log::Write("native backend resolution deferred to game thread");
 
         Log::Write("DLL initialized; F4 opens the menu and End unloads the DLL");
         return true;
@@ -319,6 +412,7 @@ namespace Sick::Runtime
         {
             std::scoped_lock lock(m_GameMutex);
             Game::Enhanced::EnhancedGame::Shutdown();
+            g_RuntimeNativeHandlers.fill(nullptr);
         }
         m_NativeBootstrapFinalized = false;
         m_NativeBackendRetry = 0;
