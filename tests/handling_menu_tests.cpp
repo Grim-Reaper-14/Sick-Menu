@@ -59,10 +59,12 @@ int main()
 
     Sick::Ui::SickMenu menu{std::move(callbacks)};
     const auto& vehicleOptions = menu.VehiclePage().Options();
-    CHECK(vehicleOptions.size() == 10);
+    CHECK(vehicleOptions.size() == 11);
     CHECK(vehicleOptions[6].LabelText() == "Handling");
     CHECK(vehicleOptions[6].Kind() == Sick::Ui::MenuOptionKind::Submenu);
-    CHECK(vehicleOptions[7].LabelText() == "Repair Vehicle");
+    CHECK(vehicleOptions[7].LabelText() == "Customization");
+    CHECK(vehicleOptions[7].Kind() == Sick::Ui::MenuOptionKind::Submenu);
+    CHECK(vehicleOptions[8].LabelText() == "Repair Vehicle");
 
     auto& handlingOptions = menu.HandlingPage().Options();
     CHECK(handlingOptions.size() == 13);

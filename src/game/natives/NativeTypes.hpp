@@ -13,3 +13,8 @@ namespace Sick::Game
     using Object = std::int32_t;
     using Player = std::int32_t;
 }
+
+namespace Sick::Game::Natives
+{
+    using NativeHash = Sick::Game::NativeHash;
+}
