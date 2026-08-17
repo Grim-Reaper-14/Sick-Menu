@@ -22,7 +22,7 @@ namespace Sick::Ui
         ImGuiKey left{ImGuiKey_Keypad4};
         ImGuiKey right{ImGuiKey_Keypad6};
         ImGuiKey select{ImGuiKey_Keypad5};
-        ImGuiKey back{ImGuiKey_Backspace};
+        ImGuiKey back{ImGuiKey_Keypad0};
     };
 
     class ImGuiMenuBackend final
