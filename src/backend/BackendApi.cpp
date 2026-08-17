@@ -1,7 +1,7 @@
 #include "BackendApi.hpp"
 
 #include "BackendCore.hpp"
-#include "backend/system/Logger.hpp"
+#include "backend/system/LoggerApi.hpp"
 #include "game/scripts/ScriptFunctionCatalog.hpp"
 
 namespace Sick::Backend
@@ -34,15 +34,16 @@ namespace Sick::Backend
                 Game::Scripts::KnownScriptFunction::GetFmmcVariationCount);
             if (!specification)
             {
-                System::Logger::Get().Write("Script VM test unavailable: function specification missing");
+                System::LoggerApi::Get().Warn("script", "Script VM test unavailable: function specification missing");
                 return;
             }
 
             const auto function = specification->Bind();
             const auto result = function.TryCall<int>();
-            System::Logger::Get().Write(result
-                ? "Script VM test succeeded"
-                : "Script VM test unavailable (freemode not loaded or signature changed)");
+            if (result)
+                System::LoggerApi::Get().Info("script", "Script VM test succeeded");
+            else
+                System::LoggerApi::Get().Warn("script", "Script VM test unavailable (freemode not loaded or signature changed)");
         });
     }
 

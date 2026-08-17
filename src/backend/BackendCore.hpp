@@ -3,12 +3,9 @@
 #include "BackendTypes.hpp"
 #include "backend/calls/GameCallHub.hpp"
 #include "backend/features/FeatureManager.hpp"
-#include "backend/system/ConfigManager.hpp"
-#include "backend/system/FileSystem.hpp"
+#include "backend/system/BackgroundCore.hpp"
 #include "backend/system/PerformanceMonitor.hpp"
-#include "backend/system/SettingsManager.hpp"
 #include "backend/tasking/GameFiberScheduler.hpp"
-#include "backend/tasking/ThreadPool.hpp"
 
 #include <atomic>
 #include <cstddef>
@@ -37,8 +34,8 @@ namespace Sick::Backend
         [[nodiscard]] bool LoadProfile(std::string_view name);
 
         [[nodiscard]] BackendSnapshot Snapshot() const noexcept;
-        [[nodiscard]] const System::FileSystem& Files() const noexcept { return m_FileSystem; }
-        [[nodiscard]] System::SettingsManager& Settings() noexcept { return m_Settings; }
+        [[nodiscard]] const System::FileSystem& Files() const noexcept { return m_Background.Files(); }
+        [[nodiscard]] System::SettingsManager& Settings() noexcept { return m_Background.Settings(); }
 
     private:
         BackendCore() = default;
@@ -46,10 +43,7 @@ namespace Sick::Backend
         Calls::GameCallHub m_CallHub;
         Features::FeatureManager m_Features;
         Tasking::GameFiberScheduler m_Fibers;
-        Tasking::ThreadPool m_Threads;
-        System::FileSystem m_FileSystem;
-        System::SettingsManager m_Settings;
-        System::ConfigManager m_Configs;
+        System::BackgroundCore m_Background;
         System::PerformanceMonitor m_Performance;
 
         std::atomic_bool m_Initialized{};

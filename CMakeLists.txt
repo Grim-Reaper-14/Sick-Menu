@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.2)
-project(SickMenu VERSION 0.5.0 LANGUAGES CXX)
+project(SickMenu VERSION 0.6.0 LANGUAGES CXX)
 
 include(FetchContent)
 
@@ -17,11 +17,16 @@ add_library(sick_native STATIC
     src/backend/calls/GameCallHub.cpp
     src/backend/features/FeatureManager.cpp
     src/backend/features/PlayerFeatures.cpp
+    src/backend/system/BackgroundCore.cpp
     src/backend/system/ConfigManager.cpp
     src/backend/system/FileSystem.cpp
+    src/backend/system/IoService.cpp
     src/backend/system/Logger.cpp
+    src/backend/system/LoggerApi.cpp
     src/backend/system/PerformanceMonitor.cpp
     src/backend/system/SettingsManager.cpp
+    src/backend/system/logging/EmergencyLogWriter.cpp
+    src/backend/system/logging/LoggingEngine.cpp
     src/backend/tasking/GameFiberScheduler.cpp
     src/backend/tasking/ThreadPool.cpp
     src/frontend/FrontendCore.cpp
@@ -177,4 +182,24 @@ if(SICK_NATIVE_BUILD_TESTS)
     target_link_libraries(backend_config_tests PRIVATE sick_native)
     target_compile_features(backend_config_tests PRIVATE cxx_std_20)
     add_test(NAME backend_config_tests COMMAND backend_config_tests)
+
+    add_executable(background_system_tests
+        tests/background_system_tests.cpp
+    )
+    target_link_libraries(background_system_tests PRIVATE sick_native)
+    target_compile_features(background_system_tests PRIVATE cxx_std_20)
+    add_test(NAME background_system_tests COMMAND background_system_tests)
+
+    set_tests_properties(
+        sick_native_tests
+        sick_enhanced_backend_tests
+        reaper_indexed_backend_tests
+        script_function_tests
+        enhanced_script_host_tests
+        sick_menu_tests
+        backend_tasking_tests
+        backend_config_tests
+        background_system_tests
+        PROPERTIES TIMEOUT 30
+    )
 endif()

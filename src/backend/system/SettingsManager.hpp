@@ -1,14 +1,14 @@
 #pragma once
 
-#include "backend/tasking/ThreadPool.hpp"
-
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>
 #include <mutex>
 
 namespace Sick::Backend::System
 {
+    class FileSystem;
+    class IoService;
+
     struct BackendSettings
     {
         std::size_t backgroundWorkerCount{2};
@@ -33,10 +33,8 @@ namespace Sick::Backend::System
     class SettingsManager final
     {
     public:
-        bool Load(const std::filesystem::path& path) noexcept;
-        [[nodiscard]] bool SaveAsync(
-            Tasking::ThreadPool& pool,
-            const std::filesystem::path& path) const;
+        bool Load(FileSystem& files) noexcept;
+        [[nodiscard]] bool SaveAsync(IoService& io, FileSystem& files) const;
 
         [[nodiscard]] SettingsSnapshot Snapshot() const noexcept;
         void SetBackend(BackendSettings settings) noexcept;

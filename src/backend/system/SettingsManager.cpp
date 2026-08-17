@@ -1,58 +1,34 @@
 #include "SettingsManager.hpp"
 
-#include <algorithm>
-#include <fstream>
-#include <string>
-#include <system_error>
-#include <utility>
+#include "FileSystem.hpp"
+#include "IoService.hpp"
+#include "LoggerApi.hpp"
 
-#if defined(_WIN32)
-#include <windows.h>
-#endif
+#include <algorithm>
+#include <sstream>
+#include <string>
+#include <utility>
 
 namespace Sick::Backend::System
 {
-    namespace
-    {
-        bool CommitSettingsFile(
-            const std::filesystem::path& temporary,
-            const std::filesystem::path& destination) noexcept
-        {
-#if defined(_WIN32)
-            return MoveFileExW(
-                temporary.c_str(),
-                destination.c_str(),
-                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
-#else
-            std::error_code error;
-            std::filesystem::rename(temporary, destination, error);
-            if (!error)
-                return true;
-
-            std::filesystem::remove(destination, error);
-            error.clear();
-            std::filesystem::rename(temporary, destination, error);
-            return !error;
-#endif
-        }
-    }
-
-    bool SettingsManager::Load(const std::filesystem::path& path) noexcept
+    bool SettingsManager::Load(FileSystem& files) noexcept
     {
         try
         {
-            std::ifstream input(path);
-            if (!input)
+            if (!files.Exists(FileArea::Root, "settings.cfg"))
                 return true;
+            const auto contents = files.ReadText(FileArea::Root, "settings.cfg");
+            if (!contents)
+                return false;
 
             auto settings = Snapshot();
+            std::istringstream input(*contents);
             std::string line;
             while (std::getline(input, line))
             {
                 const auto separator = line.find('=');
                 if (separator == std::string::npos)
                     continue;
-
                 const auto key = line.substr(0, separator);
                 const auto value = line.substr(separator + 1);
 
@@ -72,20 +48,14 @@ namespace Sick::Backend::System
                     settings.frontend.toggleKey = std::stoi(value);
             }
 
-            settings.backend.backgroundWorkerCount = std::clamp<std::size_t>(
-                settings.backend.backgroundWorkerCount, 1, 4);
-            settings.backend.maxGameJobsPerTick = std::clamp<std::size_t>(
-                settings.backend.maxGameJobsPerTick, 1, 64);
-            settings.backend.maxFiberResumesPerTick = std::clamp<std::size_t>(
-                settings.backend.maxFiberResumesPerTick, 1, 32);
-            settings.backend.maxBackendMicros = std::clamp<std::uint64_t>(
-                settings.backend.maxBackendMicros, 50, 2000);
+            settings.backend.backgroundWorkerCount = std::clamp<std::size_t>(settings.backend.backgroundWorkerCount, 1, 4);
+            settings.backend.maxGameJobsPerTick = std::clamp<std::size_t>(settings.backend.maxGameJobsPerTick, 1, 64);
+            settings.backend.maxFiberResumesPerTick = std::clamp<std::size_t>(settings.backend.maxFiberResumesPerTick, 1, 32);
+            settings.backend.maxBackendMicros = std::clamp<std::uint64_t>(settings.backend.maxBackendMicros, 50, 2000);
             settings.frontend.menuScale = std::clamp(settings.frontend.menuScale, 0.5F, 2.5F);
 
-            {
-                std::scoped_lock lock(m_Mutex);
-                m_Settings = settings;
-            }
+            std::scoped_lock lock(m_Mutex);
+            m_Settings = settings;
             return true;
         }
         catch (...)
@@ -94,38 +64,21 @@ namespace Sick::Backend::System
         }
     }
 
-    bool SettingsManager::SaveAsync(
-        Tasking::ThreadPool& pool,
-        const std::filesystem::path& path) const
+    bool SettingsManager::SaveAsync(IoService& io, FileSystem& files) const
     {
         const auto settings = Snapshot();
-        return pool.Submit([settings, path]() {
-            auto temporary = path;
-            temporary += ".tmp";
-
-            {
-                std::ofstream output(temporary, std::ios::out | std::ios::trunc);
-                if (!output)
-                    return;
-
-                output << "backend.background_workers=" << settings.backend.backgroundWorkerCount << '\n';
-                output << "backend.max_game_jobs=" << settings.backend.maxGameJobsPerTick << '\n';
-                output << "backend.max_fiber_resumes=" << settings.backend.maxFiberResumesPerTick << '\n';
-                output << "backend.max_tick_micros=" << settings.backend.maxBackendMicros << '\n';
-                output << "frontend.menu_scale=" << settings.frontend.menuScale << '\n';
-                output << "frontend.animations=" << (settings.frontend.animations ? 1 : 0) << '\n';
-                output << "frontend.toggle_key=" << settings.frontend.toggleKey << '\n';
-                output.flush();
-                if (!output)
-                    return;
-            }
-
-            if (!CommitSettingsFile(temporary, path))
-            {
-                std::error_code error;
-                std::filesystem::remove(temporary, error);
-            }
-        });
+        return io.Submit(IoPriority::Maintenance, [&files, settings]() {
+            std::ostringstream output;
+            output << "backend.background_workers=" << settings.backend.backgroundWorkerCount << '\n';
+            output << "backend.max_game_jobs=" << settings.backend.maxGameJobsPerTick << '\n';
+            output << "backend.max_fiber_resumes=" << settings.backend.maxFiberResumesPerTick << '\n';
+            output << "backend.max_tick_micros=" << settings.backend.maxBackendMicros << '\n';
+            output << "frontend.menu_scale=" << settings.frontend.menuScale << '\n';
+            output << "frontend.animations=" << (settings.frontend.animations ? 1 : 0) << '\n';
+            output << "frontend.toggle_key=" << settings.frontend.toggleKey << '\n';
+            if (!files.AtomicWriteText(FileArea::Root, "settings.cfg", output.str()))
+                LoggerApi::Get().Error("settings", "Settings save failed");
+        }).has_value();
     }
 
     SettingsSnapshot SettingsManager::Snapshot() const noexcept

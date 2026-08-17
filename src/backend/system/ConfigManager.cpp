@@ -1,112 +1,43 @@
 #include "ConfigManager.hpp"
 
+#include "FileSystem.hpp"
+#include "IoService.hpp"
+#include "LoggerApi.hpp"
+
 #include <cctype>
-#include <fstream>
 #include <string>
-#include <system_error>
 #include <utility>
 
 #include <nlohmann/json.hpp>
-
-#if defined(_WIN32)
-#include <windows.h>
-#endif
 
 namespace Sick::Backend::System
 {
     namespace
     {
-        void RemoveTemporary(const std::filesystem::path& path) noexcept
+        std::string ProfileName(std::string_view name)
         {
-            std::error_code error;
-            std::filesystem::remove(path, error);
+            return std::string(name) + ".json";
         }
 
-        bool CommitConfigFile(
-            const std::filesystem::path& temporary,
-            const std::filesystem::path& destination) noexcept
+        std::string SerializeProfile(const FeatureProfile& profile)
         {
-#if defined(_WIN32)
-            return MoveFileExW(
-                temporary.c_str(),
-                destination.c_str(),
-                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
-#else
-            std::error_code error;
-            std::filesystem::rename(temporary, destination, error);
-            if (!error)
-                return true;
-
-            std::filesystem::remove(destination, error);
-            error.clear();
-            std::filesystem::rename(temporary, destination, error);
-            return !error;
-#endif
+            return nlohmann::json{
+                {"version", profile.version},
+                {"player", {{"god_mode", profile.player.godMode}}},
+            }.dump(2) + '\n';
         }
 
-        bool WriteProfile(
-            const std::filesystem::path& path,
-            const FeatureProfile& profile) noexcept
+        std::optional<FeatureProfile> ParseProfile(std::string_view contents) noexcept
         {
             try
             {
-                nlohmann::json root{
-                    {"version", profile.version},
-                    {"player", {
-                        {"god_mode", profile.player.godMode},
-                    }},
-                };
-
-                auto temporary = path;
-                temporary += ".tmp";
-                bool writeSucceeded{};
-                {
-                    std::ofstream output(temporary, std::ios::out | std::ios::trunc);
-                    if (output)
-                    {
-                        output << root.dump(2) << '\n';
-                        output.flush();
-                        writeSucceeded = static_cast<bool>(output);
-                    }
-                }
-
-                if (!writeSucceeded)
-                {
-                    RemoveTemporary(temporary);
-                    return false;
-                }
-
-                if (CommitConfigFile(temporary, path))
-                    return true;
-
-                RemoveTemporary(temporary);
-                return false;
-            }
-            catch (...)
-            {
-                return false;
-            }
-        }
-
-        std::optional<FeatureProfile> ReadProfile(
-            const std::filesystem::path& path) noexcept
-        {
-            try
-            {
-                std::ifstream input(path);
-                if (!input)
-                    return std::nullopt;
-
-                nlohmann::json root;
-                input >> root;
+                const auto root = nlohmann::json::parse(contents);
                 if (!root.is_object())
                     return std::nullopt;
-
                 FeatureProfile profile{};
                 profile.version = root.at("version").get<std::uint32_t>();
                 if (profile.version != FeatureProfile::CurrentVersion)
                     return std::nullopt;
-
                 const auto& player = root.at("player");
                 if (!player.is_object())
                     return std::nullopt;
@@ -120,18 +51,11 @@ namespace Sick::Backend::System
         }
     }
 
-    bool ConfigManager::Initialize(
-        Tasking::ThreadPool& pool,
-        const std::filesystem::path& directory) noexcept
+    bool ConfigManager::Initialize(IoService& io, FileSystem& files) noexcept
     {
-        std::error_code error;
-        std::filesystem::create_directories(directory, error);
-        if (error)
-            return false;
-
         std::scoped_lock lock(m_Mutex);
-        m_Pool = &pool;
-        m_Directory = directory;
+        m_Io = &io;
+        m_Files = &files;
         m_PendingProfile.reset();
         m_LoadGeneration = 0;
         m_Enabled = true;
@@ -144,7 +68,8 @@ namespace Sick::Backend::System
         m_Enabled = false;
         ++m_LoadGeneration;
         m_PendingProfile.reset();
-        m_Pool = nullptr;
+        m_Io = nullptr;
+        m_Files = nullptr;
     }
 
     bool ConfigManager::Save(std::string_view name, FeatureProfile profile)
@@ -152,19 +77,28 @@ namespace Sick::Backend::System
         if (!ValidName(name) || profile.version != FeatureProfile::CurrentVersion)
             return false;
 
-        Tasking::ThreadPool* pool{};
-        std::filesystem::path path;
+        IoService* io{};
+        FileSystem* files{};
+        std::string filename = ProfileName(name);
         {
             std::scoped_lock lock(m_Mutex);
-            if (!m_Enabled || !m_Pool)
+            if (!m_Enabled || !m_Io || !m_Files)
                 return false;
-            pool = m_Pool;
-            path = m_Directory / (std::string(name) + ".json");
+            io = m_Io;
+            files = m_Files;
         }
 
-        return pool->Submit([path = std::move(path), profile]() {
-            static_cast<void>(WriteProfile(path, profile));
-        });
+        return io->Submit(IoPriority::Normal, [files, filename = std::move(filename), profile]() {
+            try
+            {
+                if (!files->AtomicWriteText(FileArea::Configs, filename, SerializeProfile(profile)))
+                    LoggerApi::Get().Error("config", "Profile save failed", {{"file", filename}});
+            }
+            catch (...)
+            {
+                LoggerApi::Get().Error("config", "Profile serialization failed", {{"file", filename}});
+            }
+        }).has_value();
     }
 
     bool ConfigManager::Load(std::string_view name)
@@ -172,28 +106,33 @@ namespace Sick::Backend::System
         if (!ValidName(name))
             return false;
 
-        Tasking::ThreadPool* pool{};
-        std::filesystem::path path;
+        IoService* io{};
+        FileSystem* files{};
+        std::string filename = ProfileName(name);
         std::uint64_t generation{};
         {
             std::scoped_lock lock(m_Mutex);
-            if (!m_Enabled || !m_Pool)
+            if (!m_Enabled || !m_Io || !m_Files)
                 return false;
-            pool = m_Pool;
-            path = m_Directory / (std::string(name) + ".json");
+            io = m_Io;
+            files = m_Files;
             generation = ++m_LoadGeneration;
         }
 
-        return pool->Submit([this, path = std::move(path), generation]() {
-            const auto profile = ReadProfile(path);
+        return io->Submit(IoPriority::Critical, [this, files, filename = std::move(filename), generation]() {
+            const auto contents = files->ReadText(FileArea::Configs, filename);
+            const auto profile = contents ? ParseProfile(*contents) : std::nullopt;
             if (!profile)
+            {
+                LoggerApi::Get().Warn("config", "Profile load rejected", {{"file", filename}});
                 return;
+            }
 
             std::scoped_lock lock(m_Mutex);
             if (!m_Enabled || generation != m_LoadGeneration)
                 return;
             m_PendingProfile = *profile;
-        });
+        }).has_value();
     }
 
     std::optional<FeatureProfile> ConfigManager::TakePendingProfile() noexcept
@@ -208,7 +147,6 @@ namespace Sick::Backend::System
     {
         if (name.empty() || name.size() > 64)
             return false;
-
         for (const char character : name)
         {
             const auto value = static_cast<unsigned char>(character);

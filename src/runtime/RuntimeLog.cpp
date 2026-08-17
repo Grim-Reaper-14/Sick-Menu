@@ -1,12 +1,11 @@
 #include "RuntimeLog.hpp"
 
 #include "backend/BackendCore.hpp"
-#include "backend/system/Logger.hpp"
+#include "backend/system/LoggerApi.hpp"
 
 #include <cstdio>
 #include <cstdint>
 #include <filesystem>
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -20,16 +19,18 @@ namespace
     {
         if (!exception || !exception->ExceptionRecord)
             return EXCEPTION_CONTINUE_SEARCH;
-        const auto address = reinterpret_cast<std::uintptr_t>(
-            exception->ExceptionRecord->ExceptionAddress);
+        const auto address = reinterpret_cast<std::uintptr_t>(exception->ExceptionRecord->ExceptionAddress);
         if (address < g_ModuleBase || address >= g_ModuleBase + g_ModuleSize)
             return EXCEPTION_CONTINUE_SEARCH;
 
-        std::ostringstream message;
-        message << "CRASH inside SickMenu.dll: code=0x" << std::hex
-                << exception->ExceptionRecord->ExceptionCode
-                << " address=0x" << address;
-        Sick::Backend::System::Logger::Get().WriteImmediate(message.str());
+        char message[192]{};
+        static_cast<void>(std::snprintf(
+            message,
+            sizeof(message),
+            "CRASH inside SickMenu.dll: code=0x%08lX address=0x%llX",
+            static_cast<unsigned long>(exception->ExceptionRecord->ExceptionCode),
+            static_cast<unsigned long long>(address)));
+        Sick::Backend::System::LoggerApi::Get().Emergency(message);
         return EXCEPTION_CONTINUE_SEARCH;
     }
 }
@@ -67,13 +68,17 @@ namespace Sick::Runtime::Log
         g_ExceptionHandler = AddVectoredExceptionHandler(1, &LogModuleException);
         Write(backendReady
             ? "backend logger initialized"
-            : "backend core initialization failed; logging to console fallback");
+            : "backend core initialization failed; emergency logging active");
         return backendReady;
     }
 
     void Write(std::string_view message) noexcept
     {
-        Backend::System::Logger::Get().Write(message);
+        auto& logger = Backend::System::LoggerApi::Get();
+        if (logger.Ready())
+            logger.Info("runtime", message);
+        else
+            logger.Emergency(message);
     }
 
     void Shutdown() noexcept

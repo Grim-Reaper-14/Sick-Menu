@@ -1,6 +1,6 @@
 #include "BackendCore.hpp"
 
-#include "backend/system/Logger.hpp"
+#include "backend/system/LoggerApi.hpp"
 #include "backend/tasking/TaskAffinity.hpp"
 #include "game/natives/NativeSystem.hpp"
 #include "game/scripts/ScriptRuntime.hpp"
@@ -31,34 +31,16 @@ namespace Sick::Backend
     {
         if (m_Initialized.load(std::memory_order_acquire))
             return true;
-
-        if (!m_FileSystem.Initialize(moduleDirectory))
+        if (!m_Background.Initialize(moduleDirectory))
             return false;
 
-        static_cast<void>(m_Settings.Load(m_FileSystem.SettingsFile()));
-        const auto settings = m_Settings.Snapshot().backend;
+        const auto settings = m_Background.Settings().Snapshot().backend;
         m_MaxGameJobsPerTick = std::clamp<std::size_t>(settings.maxGameJobsPerTick, 1, 64);
         m_MaxFiberResumesPerTick = std::clamp<std::size_t>(settings.maxFiberResumesPerTick, 1, 32);
         m_MaxBackendMicros = std::clamp<std::uint64_t>(settings.maxBackendMicros, 50, 2000);
 
-        if (!m_Threads.Start(std::clamp<std::size_t>(settings.backgroundWorkerCount, 1, 4)))
-            return false;
-
-        if (!m_Configs.Initialize(m_Threads, m_FileSystem.Configs()))
-        {
-            m_Threads.Stop();
-            return false;
-        }
-
-        if (!System::Logger::Get().Initialize(m_Threads, m_FileSystem.LogFile()))
-        {
-            m_Configs.Shutdown();
-            m_Threads.Stop();
-            return false;
-        }
-
         m_Initialized.store(true, std::memory_order_release);
-        System::Logger::Get().Write("backend core initialized");
+        System::LoggerApi::Get().Info("backend", "BackendCore initialized");
         return true;
     }
 
@@ -66,13 +48,9 @@ namespace Sick::Backend
     {
         if (!m_Initialized.exchange(false, std::memory_order_acq_rel))
             return;
-
-        m_Configs.Shutdown();
         ResetGameState();
-        static_cast<void>(m_Settings.SaveAsync(m_Threads, m_FileSystem.SettingsFile()));
-        System::Logger::Get().Write("backend core shutting down");
-        m_Threads.Stop();
-        System::Logger::Get().Shutdown();
+        System::LoggerApi::Get().Info("backend", "BackendCore shutting down");
+        m_Background.Shutdown();
     }
 
     void BackendCore::ResetGameState() noexcept
@@ -94,11 +72,9 @@ namespace Sick::Backend
         m_NativeReady.store(nativeReady, std::memory_order_release);
         m_ScriptReady.store(scriptReady, std::memory_order_release);
 
-        if (const auto profile = m_Configs.TakePendingProfile())
+        if (const auto profile = m_Background.Configs().TakePendingProfile())
             m_Features.ApplyProfile(*profile);
 
-        // Persistent feature state gets the first game-thread slice. This keeps
-        // state maintenance independent from arbitrary queued command backlogs.
         m_Features.Tick(nativeReady);
 
         const auto afterFeatures = ElapsedMicros(start);
@@ -153,18 +129,19 @@ namespace Sick::Backend
 
     bool BackendCore::SaveProfile(std::string_view name)
     {
-        return m_Configs.Save(name, m_Features.Profile());
+        return m_Background.Configs().Save(name, m_Features.Profile());
     }
 
     bool BackendCore::LoadProfile(std::string_view name)
     {
-        return m_Configs.Load(name);
+        return m_Background.Configs().Load(name);
     }
 
     BackendSnapshot BackendCore::Snapshot() const noexcept
     {
         const auto player = m_Features.PlayerSnapshot();
         const auto performance = m_Performance.Snapshot();
+        const auto background = m_Background.Snapshot();
         return {
             .initialized = m_Initialized.load(std::memory_order_acquire),
             .nativeReady = m_NativeReady.load(std::memory_order_acquire),
@@ -173,7 +150,7 @@ namespace Sick::Backend
             .queues = {
                 .gameCalls = m_CallHub.Pending(),
                 .fibers = m_Fibers.Pending(),
-                .background = m_Threads.Pending(),
+                .background = background.io.pending,
             },
             .performance = {
                 .lastTickMicros = performance.lastTickMicros,
@@ -182,6 +159,7 @@ namespace Sick::Backend
                 .lastJobs = performance.lastJobs,
                 .lastFiberResumes = performance.lastFiberResumes,
             },
+            .background = background,
         };
     }
 }
