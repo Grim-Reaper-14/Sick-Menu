@@ -64,7 +64,7 @@ int main()
     CHECK(vehicleOptions[6].Kind() == Sick::Ui::MenuOptionKind::Submenu);
     CHECK(vehicleOptions[7].LabelText() == "Repair Vehicle");
 
-    const auto& handlingOptions = menu.HandlingPage().Options();
+    auto& handlingOptions = menu.HandlingPage().Options();
     CHECK(handlingOptions.size() == 13);
     CHECK(handlingOptions[0].Kind() == Sick::Ui::MenuOptionKind::Info);
     CHECK(handlingOptions[0].ValueText() == "ADAPTER REQUIRED");
