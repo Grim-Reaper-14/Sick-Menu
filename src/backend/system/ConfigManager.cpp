@@ -4,6 +4,7 @@
 #include "IoService.hpp"
 #include "LoggerApi.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <string>
 #include <utility>
@@ -23,7 +24,21 @@ namespace Sick::Backend::System
         {
             return nlohmann::json{
                 {"version", profile.version},
-                {"player", {{"god_mode", profile.player.godMode}}},
+                {"player", {
+                    {"god_mode", profile.player.godMode},
+                    {"infinite_oxygen", profile.player.infiniteOxygen},
+                    {"no_ragdoll", profile.player.noRagdoll},
+                    {"super_jump", profile.player.superJump},
+                    {"seat_belt", profile.player.seatBelt},
+                    {"no_wanted_level", profile.player.noWantedLevel},
+                    {"wanted_level", profile.player.wantedLevel},
+                    {"fast_run", profile.player.fastRun},
+                    {"fast_swim", profile.player.fastSwim},
+                    {"keep_player_clean", profile.player.keepPlayerClean},
+                    {"aqualung", profile.player.aqualung},
+                    {"no_gravity", profile.player.noGravity},
+                    {"waterproof", profile.player.waterproof},
+                }},
             }.dump(2) + '\n';
         }
 
@@ -34,14 +49,32 @@ namespace Sick::Backend::System
                 const auto root = nlohmann::json::parse(contents);
                 if (!root.is_object())
                     return std::nullopt;
-                FeatureProfile profile{};
-                profile.version = root.at("version").get<std::uint32_t>();
-                if (profile.version != FeatureProfile::CurrentVersion)
+
+                const auto version = root.at("version").get<std::uint32_t>();
+                if (version != 1 && version != FeatureProfile::CurrentVersion)
                     return std::nullopt;
+
                 const auto& player = root.at("player");
                 if (!player.is_object())
                     return std::nullopt;
+
+                FeatureProfile profile{};
                 profile.player.godMode = player.at("god_mode").get<bool>();
+                if (version == 1)
+                    return profile;
+
+                profile.player.infiniteOxygen = player.value("infinite_oxygen", false);
+                profile.player.noRagdoll = player.value("no_ragdoll", false);
+                profile.player.superJump = player.value("super_jump", false);
+                profile.player.seatBelt = player.value("seat_belt", false);
+                profile.player.noWantedLevel = player.value("no_wanted_level", false);
+                profile.player.wantedLevel = std::clamp(player.value("wanted_level", 0), 0, 5);
+                profile.player.fastRun = player.value("fast_run", false);
+                profile.player.fastSwim = player.value("fast_swim", false);
+                profile.player.keepPlayerClean = player.value("keep_player_clean", false);
+                profile.player.aqualung = player.value("aqualung", false);
+                profile.player.noGravity = player.value("no_gravity", false);
+                profile.player.waterproof = player.value("waterproof", false);
                 return profile;
             }
             catch (...)

@@ -69,6 +69,18 @@ int main()
 
     FeatureProfile enabled{};
     enabled.player.godMode = true;
+    enabled.player.infiniteOxygen = true;
+    enabled.player.noRagdoll = true;
+    enabled.player.superJump = true;
+    enabled.player.seatBelt = true;
+    enabled.player.noWantedLevel = true;
+    enabled.player.wantedLevel = 4;
+    enabled.player.fastRun = true;
+    enabled.player.fastSwim = true;
+    enabled.player.keepPlayerClean = true;
+    enabled.player.aqualung = true;
+    enabled.player.noGravity = true;
+    enabled.player.waterproof = true;
     CHECK(configs.Save("roundtrip", enabled));
     io.Stop();
 
@@ -82,6 +94,32 @@ int main()
     CHECK(loaded.has_value());
     CHECK(loaded->version == FeatureProfile::CurrentVersion);
     CHECK(loaded->player.godMode);
+    CHECK(loaded->player.infiniteOxygen);
+    CHECK(loaded->player.noRagdoll);
+    CHECK(loaded->player.superJump);
+    CHECK(loaded->player.seatBelt);
+    CHECK(loaded->player.noWantedLevel);
+    CHECK(loaded->player.wantedLevel == 4);
+    CHECK(loaded->player.fastRun);
+    CHECK(loaded->player.fastSwim);
+    CHECK(loaded->player.keepPlayerClean);
+    CHECK(loaded->player.aqualung);
+    CHECK(loaded->player.noGravity);
+    CHECK(loaded->player.waterproof);
+
+    CHECK(files.AtomicWriteText(
+        FileArea::Configs,
+        "legacy.json",
+        R"({"version":1,"player":{"god_mode":true}})"));
+    CHECK(io.Start(1, 32));
+    CHECK(configs.Load("legacy"));
+    io.Stop();
+    auto legacy = configs.TakePendingProfile();
+    CHECK(legacy.has_value());
+    CHECK(legacy->version == FeatureProfile::CurrentVersion);
+    CHECK(legacy->player.godMode);
+    CHECK(!legacy->player.superJump);
+    CHECK(legacy->player.wantedLevel == 0);
 
     CHECK(files.AtomicWriteText(FileArea::Configs, "broken.json", "{ not valid json"));
     CHECK(io.Start(1, 32));

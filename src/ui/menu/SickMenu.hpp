@@ -60,6 +60,18 @@ namespace Sick::Ui
     struct SickMenuState
     {
         bool godMode{};
+        bool infiniteOxygen{};
+        bool noRagdoll{};
+        bool superJump{};
+        bool seatBelt{};
+        bool noWantedLevel{};
+        int wantedLevel{};
+        bool fastRun{};
+        bool fastSwim{};
+        bool keepPlayerClean{};
+        bool aqualung{};
+        bool noGravity{};
+        bool waterproof{};
         bool beastJump{};
         bool gracefulLanding{};
         bool demoToggle{};
@@ -77,6 +89,18 @@ namespace Sick::Ui
     struct SickMenuCallbacks
     {
         std::function<void(bool)> godMode;
+        std::function<void(bool)> infiniteOxygen;
+        std::function<void(bool)> noRagdoll;
+        std::function<void(bool)> superJump;
+        std::function<void(bool)> seatBelt;
+        std::function<void(bool)> noWantedLevel;
+        std::function<void(int)> wantedLevel;
+        std::function<void(bool)> fastRun;
+        std::function<void(bool)> fastSwim;
+        std::function<void(bool)> keepPlayerClean;
+        std::function<void(bool)> aqualung;
+        std::function<void(bool)> noGravity;
+        std::function<void(bool)> waterproof;
         std::function<void(bool)> beastJump;
         std::function<void(bool)> gracefulLanding;
         std::function<void()> regularAction;

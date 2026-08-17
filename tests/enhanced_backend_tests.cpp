@@ -61,11 +61,14 @@ int main()
     assert(EnhancedGame::Initialize(1234, &Lookup));
     assert(EnhancedGame::Ready());
     assert(BuildManager::Current() == 1234);
-    assert(NativeRegistry::Get().Size() == 4);
+    assert(NativeRegistry::Get().Size() == NativeCount);
 
     const auto playerPed = NativeRegistry::Get().Find("PLAYER_PED_ID");
     assert(playerPed.has_value());
     assert(playerPed->hash == Hashes::PLAYER_PED_ID);
+    const auto superJump = NativeRegistry::Get().Find("SET_SUPER_JUMP_THIS_FRAME");
+    assert(superJump.has_value());
+    assert(superJump->hash == Hashes::SET_SUPER_JUMP_THIS_FRAME);
 
     const auto idleStats = NativeSystem::Stats();
     EnhancedGame::Tick();

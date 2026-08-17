@@ -35,6 +35,42 @@ namespace Sick::Ui
         m_PlayerPage.AddToggle("GodMode", m_State.godMode, [this](bool enabled) {
             Notify(m_Callbacks.godMode, enabled);
         });
+        m_PlayerPage.AddToggle("Infinite Oxygen", m_State.infiniteOxygen, [this](bool enabled) {
+            Notify(m_Callbacks.infiniteOxygen, enabled);
+        });
+        m_PlayerPage.AddToggle("No Ragdoll", m_State.noRagdoll, [this](bool enabled) {
+            Notify(m_Callbacks.noRagdoll, enabled);
+        });
+        m_PlayerPage.AddToggle("Super Jump", m_State.superJump, [this](bool enabled) {
+            Notify(m_Callbacks.superJump, enabled);
+        });
+        m_PlayerPage.AddToggle("Seat Belt", m_State.seatBelt, [this](bool enabled) {
+            Notify(m_Callbacks.seatBelt, enabled);
+        });
+        m_PlayerPage.AddToggle("No Wanted Level", m_State.noWantedLevel, [this](bool enabled) {
+            Notify(m_Callbacks.noWantedLevel, enabled);
+        });
+        m_PlayerPage.AddInteger("Set Wanted Level", m_State.wantedLevel, 0, 5, 1, [this](int level) {
+            Notify(m_Callbacks.wantedLevel, level);
+        });
+        m_PlayerPage.AddToggle("Fast Run", m_State.fastRun, [this](bool enabled) {
+            Notify(m_Callbacks.fastRun, enabled);
+        });
+        m_PlayerPage.AddToggle("Fast Swim", m_State.fastSwim, [this](bool enabled) {
+            Notify(m_Callbacks.fastSwim, enabled);
+        });
+        m_PlayerPage.AddToggle("Keep Player Clean", m_State.keepPlayerClean, [this](bool enabled) {
+            Notify(m_Callbacks.keepPlayerClean, enabled);
+        });
+        m_PlayerPage.AddToggle("Aqualung", m_State.aqualung, [this](bool enabled) {
+            Notify(m_Callbacks.aqualung, enabled);
+        });
+        m_PlayerPage.AddToggle("No Gravity", m_State.noGravity, [this](bool enabled) {
+            Notify(m_Callbacks.noGravity, enabled);
+        });
+        m_PlayerPage.AddToggle("Waterproof", m_State.waterproof, [this](bool enabled) {
+            Notify(m_Callbacks.waterproof, enabled);
+        }).Describe("Prevents drowning and suppresses swimming so gravity can settle the player on the sea floor.");
         m_PlayerPage.AddToggle("Beast Jump", m_State.beastJump, [this](bool enabled) {
             Notify(m_Callbacks.beastJump, enabled);
         });

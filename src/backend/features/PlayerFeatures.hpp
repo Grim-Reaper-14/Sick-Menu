@@ -12,19 +12,74 @@ namespace Sick::Backend::Features
     {
     public:
         void SetGodMode(bool enabled) noexcept;
+        void SetInfiniteOxygen(bool enabled) noexcept;
+        void SetNoRagdoll(bool enabled) noexcept;
+        void SetSuperJump(bool enabled) noexcept;
+        void SetSeatBelt(bool enabled) noexcept;
+        void SetNoWantedLevel(bool enabled) noexcept;
+        void SetWantedLevel(int level) noexcept;
+        void SetFastRun(bool enabled) noexcept;
+        void SetFastSwim(bool enabled) noexcept;
+        void SetKeepPlayerClean(bool enabled) noexcept;
+        void SetAqualung(bool enabled) noexcept;
+        void SetNoGravity(bool enabled) noexcept;
+        void SetWaterproof(bool enabled) noexcept;
+
         void Tick() noexcept;
         void Reset() noexcept;
         [[nodiscard]] PlayerFeatureSnapshot Snapshot() const noexcept;
 
     private:
-        static constexpr std::uint32_t GodModeRefreshTicks = 30;
+        static constexpr std::uint32_t RefreshTicks = 30;
+        static constexpr float DefaultUnderwaterSeconds = 10.0F;
+        static constexpr float UnlimitedUnderwaterSeconds = 1000000.0F;
+        static constexpr float DefaultMovementMultiplier = 1.0F;
+        static constexpr float FastMovementMultiplier = 1.49F;
+
+        void RestorePedState(Game::Ped ped) noexcept;
+        void ClearPedAppliedState() noexcept;
 
         Game::PlayerService m_Player;
+
         std::atomic_bool m_GodModeRequested{};
+        std::atomic_bool m_InfiniteOxygenRequested{};
+        std::atomic_bool m_NoRagdollRequested{};
+        std::atomic_bool m_SuperJumpRequested{};
+        std::atomic_bool m_SeatBeltRequested{};
+        std::atomic_bool m_NoWantedLevelRequested{};
+        std::atomic_int m_WantedLevelRequested{};
+        std::atomic_bool m_FastRunRequested{};
+        std::atomic_bool m_FastSwimRequested{};
+        std::atomic_bool m_KeepPlayerCleanRequested{};
+        std::atomic_bool m_AqualungRequested{};
+        std::atomic_bool m_NoGravityRequested{};
+        std::atomic_bool m_WaterproofRequested{};
+
         std::atomic_bool m_GodModeActive{};
-        std::atomic_uint64_t m_GodModeRevision{};
-        std::uint64_t m_SeenGodModeRevision{};
-        std::uint32_t m_GodModeRefreshTicks{};
-        Game::Ped m_LastGodModePed{};
+        std::atomic_bool m_InfiniteOxygenActive{};
+        std::atomic_bool m_NoRagdollActive{};
+        std::atomic_bool m_SuperJumpActive{};
+        std::atomic_bool m_SeatBeltActive{};
+        std::atomic_bool m_NoWantedLevelActive{};
+        std::atomic_bool m_FastRunActive{};
+        std::atomic_bool m_FastSwimActive{};
+        std::atomic_bool m_KeepPlayerCleanActive{};
+        std::atomic_bool m_AqualungActive{};
+        std::atomic_bool m_NoGravityActive{};
+        std::atomic_bool m_WaterproofActive{};
+
+        bool m_GodModeApplied{};
+        bool m_OxygenApplied{};
+        bool m_NoRagdollApplied{};
+        bool m_SeatBeltApplied{};
+        bool m_AqualungApplied{};
+        bool m_NoGravityApplied{};
+        bool m_WaterproofApplied{};
+        bool m_NoWantedLevelApplied{};
+        bool m_FastRunApplied{};
+        bool m_FastSwimApplied{};
+        int m_WantedLevelApplied{};
+        std::uint32_t m_RefreshTicks{};
+        Game::Ped m_LastPed{};
     };
 }

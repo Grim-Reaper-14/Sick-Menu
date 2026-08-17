@@ -82,12 +82,25 @@ namespace
     bool TestSickMenuStructureAndRenderer()
     {
         std::size_t godModeCallbacks{};
+        std::size_t oxygenCallbacks{};
+        std::size_t wantedCallbacks{};
         bool lastGodMode{};
+        bool lastOxygen{};
+        int lastWanted{};
         Reaper::UI::SickMenuCallbacks callbacks{};
         callbacks.godMode = [&godModeCallbacks, &lastGodMode](bool value) {
             ++godModeCallbacks;
             lastGodMode = value;
         };
+        callbacks.infiniteOxygen = [&oxygenCallbacks, &lastOxygen](bool value) {
+            ++oxygenCallbacks;
+            lastOxygen = value;
+        };
+        callbacks.wantedLevel = [&wantedCallbacks, &lastWanted](int value) {
+            ++wantedCallbacks;
+            lastWanted = value;
+        };
+
         Reaper::UI::SickMenu menu{std::move(callbacks)};
         CHECK(menu.RootPage().Options().size() == 11);
         CHECK(menu.PlayerPage().Title() == "PLAYER");
@@ -102,9 +115,29 @@ namespace
         CHECK(menu.OnlineProtectionPage().Title() == "ONLINE PROTECTION");
         CHECK(menu.MenuSettingsPage().Title() == "MENU SETTINGS");
         CHECK(&menu.SelfPage() == &menu.PlayerPage());
+
         const auto& rootOptions = menu.RootPage().Options();
         CHECK(rootOptions[0].LabelText() == "Player");
         CHECK(rootOptions[10].LabelText() == "Menu Settings");
+
+        const auto& playerOptions = menu.PlayerPage().Options();
+        CHECK(playerOptions.size() == 15);
+        CHECK(playerOptions[0].LabelText() == "GodMode");
+        CHECK(playerOptions[1].LabelText() == "Infinite Oxygen");
+        CHECK(playerOptions[2].LabelText() == "No Ragdoll");
+        CHECK(playerOptions[3].LabelText() == "Super Jump");
+        CHECK(playerOptions[4].LabelText() == "Seat Belt");
+        CHECK(playerOptions[5].LabelText() == "No Wanted Level");
+        CHECK(playerOptions[6].LabelText() == "Set Wanted Level");
+        CHECK(playerOptions[7].LabelText() == "Fast Run");
+        CHECK(playerOptions[8].LabelText() == "Fast Swim");
+        CHECK(playerOptions[9].LabelText() == "Keep Player Clean");
+        CHECK(playerOptions[10].LabelText() == "Aqualung");
+        CHECK(playerOptions[11].LabelText() == "No Gravity");
+        CHECK(playerOptions[12].LabelText() == "Waterproof");
+        CHECK(playerOptions[13].LabelText() == "Beast Jump");
+        CHECK(playerOptions[14].LabelText() == "Graceful Landing");
+
         CHECK(menu.Draw({1920.0F, 1080.0F}).Empty());
         menu.Open();
         const auto rootDraw = menu.Draw({1920.0F, 1080.0F});
@@ -112,10 +145,22 @@ namespace
         CHECK(HasText(rootDraw, "1 / 11", Sick::Ui::MenuTextAlign::Right));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
         CHECK(menu.Controller().CurrentPage()->Title() == "PLAYER");
-        CHECK(menu.Controller().SelectionCounter().total == 3);
+        CHECK(menu.Controller().SelectionCounter().total == 15);
+
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
         CHECK(menu.State().godMode);
         CHECK(godModeCallbacks == 1 && lastGodMode);
+
+        CHECK(menu.Controller().SelectOption(1));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
+        CHECK(menu.State().infiniteOxygen);
+        CHECK(oxygenCallbacks == 1 && lastOxygen);
+
+        CHECK(menu.Controller().SelectOption(6));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Right));
+        CHECK(menu.State().wantedLevel == 1);
+        CHECK(wantedCallbacks == 1 && lastWanted == 1);
+
         CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
         CHECK(menu.Controller().SelectOption(1));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
@@ -204,12 +249,62 @@ namespace
     {
         auto& backend = Sick::Backend::BackendApi::Get();
         backend.SetGodMode(true);
+        backend.SetInfiniteOxygen(true);
+        backend.SetNoRagdoll(true);
+        backend.SetSuperJump(true);
+        backend.SetSeatBelt(true);
+        backend.SetNoWantedLevel(true);
+        backend.SetWantedLevel(4);
+        backend.SetFastRun(true);
+        backend.SetFastSwim(true);
+        backend.SetKeepPlayerClean(true);
+        backend.SetAqualung(true);
+        backend.SetNoGravity(true);
+        backend.SetWaterproof(true);
+
         Sick::Frontend::FrontendCore frontend;
         frontend.Tick();
         CHECK(frontend.Menu().State().godMode);
+        CHECK(frontend.Menu().State().infiniteOxygen);
+        CHECK(frontend.Menu().State().noRagdoll);
+        CHECK(frontend.Menu().State().superJump);
+        CHECK(frontend.Menu().State().seatBelt);
+        CHECK(frontend.Menu().State().noWantedLevel);
+        CHECK(frontend.Menu().State().wantedLevel == 4);
+        CHECK(frontend.Menu().State().fastRun);
+        CHECK(frontend.Menu().State().fastSwim);
+        CHECK(frontend.Menu().State().keepPlayerClean);
+        CHECK(frontend.Menu().State().aqualung);
+        CHECK(frontend.Menu().State().noGravity);
+        CHECK(frontend.Menu().State().waterproof);
+
         backend.SetGodMode(false);
+        backend.SetInfiniteOxygen(false);
+        backend.SetNoRagdoll(false);
+        backend.SetSuperJump(false);
+        backend.SetSeatBelt(false);
+        backend.SetNoWantedLevel(false);
+        backend.SetWantedLevel(0);
+        backend.SetFastRun(false);
+        backend.SetFastSwim(false);
+        backend.SetKeepPlayerClean(false);
+        backend.SetAqualung(false);
+        backend.SetNoGravity(false);
+        backend.SetWaterproof(false);
         frontend.Tick();
         CHECK(!frontend.Menu().State().godMode);
+        CHECK(!frontend.Menu().State().infiniteOxygen);
+        CHECK(!frontend.Menu().State().noRagdoll);
+        CHECK(!frontend.Menu().State().superJump);
+        CHECK(!frontend.Menu().State().seatBelt);
+        CHECK(!frontend.Menu().State().noWantedLevel);
+        CHECK(frontend.Menu().State().wantedLevel == 0);
+        CHECK(!frontend.Menu().State().fastRun);
+        CHECK(!frontend.Menu().State().fastSwim);
+        CHECK(!frontend.Menu().State().keepPlayerClean);
+        CHECK(!frontend.Menu().State().aqualung);
+        CHECK(!frontend.Menu().State().noGravity);
+        CHECK(!frontend.Menu().State().waterproof);
         return true;
     }
 

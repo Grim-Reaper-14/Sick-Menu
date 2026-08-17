@@ -104,30 +104,24 @@ namespace Sick::Backend
             fiberResumes);
     }
 
-    bool BackendCore::QueueGame(Calls::GameCallHub::Job job)
-    {
-        return m_CallHub.QueueGame(std::move(job));
-    }
+    bool BackendCore::QueueGame(Calls::GameCallHub::Job job) { return m_CallHub.QueueGame(std::move(job)); }
+    bool BackendCore::QueueNative(Calls::GameCallHub::Job job) { return m_CallHub.QueueNative(std::move(job)); }
+    bool BackendCore::QueueScript(Calls::GameCallHub::Job job) { return m_CallHub.QueueScript(std::move(job)); }
+    bool BackendCore::QueueFiber(Tasking::GameFiberScheduler::Task task) { return m_Fibers.Queue(std::move(task)); }
 
-    bool BackendCore::QueueNative(Calls::GameCallHub::Job job)
-    {
-        return m_CallHub.QueueNative(std::move(job));
-    }
-
-    bool BackendCore::QueueScript(Calls::GameCallHub::Job job)
-    {
-        return m_CallHub.QueueScript(std::move(job));
-    }
-
-    bool BackendCore::QueueFiber(Tasking::GameFiberScheduler::Task task)
-    {
-        return m_Fibers.Queue(std::move(task));
-    }
-
-    void BackendCore::SetGodMode(bool enabled) noexcept
-    {
-        m_Features.SetGodMode(enabled);
-    }
+    void BackendCore::SetGodMode(bool enabled) noexcept { m_Features.SetGodMode(enabled); }
+    void BackendCore::SetInfiniteOxygen(bool enabled) noexcept { m_Features.SetInfiniteOxygen(enabled); }
+    void BackendCore::SetNoRagdoll(bool enabled) noexcept { m_Features.SetNoRagdoll(enabled); }
+    void BackendCore::SetSuperJump(bool enabled) noexcept { m_Features.SetSuperJump(enabled); }
+    void BackendCore::SetSeatBelt(bool enabled) noexcept { m_Features.SetSeatBelt(enabled); }
+    void BackendCore::SetNoWantedLevel(bool enabled) noexcept { m_Features.SetNoWantedLevel(enabled); }
+    void BackendCore::SetWantedLevel(int level) noexcept { m_Features.SetWantedLevel(level); }
+    void BackendCore::SetFastRun(bool enabled) noexcept { m_Features.SetFastRun(enabled); }
+    void BackendCore::SetFastSwim(bool enabled) noexcept { m_Features.SetFastSwim(enabled); }
+    void BackendCore::SetKeepPlayerClean(bool enabled) noexcept { m_Features.SetKeepPlayerClean(enabled); }
+    void BackendCore::SetAqualung(bool enabled) noexcept { m_Features.SetAqualung(enabled); }
+    void BackendCore::SetNoGravity(bool enabled) noexcept { m_Features.SetNoGravity(enabled); }
+    void BackendCore::SetWaterproof(bool enabled) noexcept { m_Features.SetWaterproof(enabled); }
 
     bool BackendCore::SaveProfile(std::string_view name)
     {
@@ -146,20 +140,9 @@ namespace Sick::Backend
         return profileQueued && settingsQueued;
     }
 
-    AssetCatalogSnapshot BackendCore::Assets() const
-    {
-        return m_Background.Assets().Snapshot();
-    }
-
-    std::uint64_t BackendCore::AssetGeneration() const noexcept
-    {
-        return m_Background.Assets().Generation();
-    }
-
-    bool BackendCore::RefreshAssets()
-    {
-        return m_Background.Assets().Refresh();
-    }
+    AssetCatalogSnapshot BackendCore::Assets() const { return m_Background.Assets().Snapshot(); }
+    std::uint64_t BackendCore::AssetGeneration() const noexcept { return m_Background.Assets().Generation(); }
+    bool BackendCore::RefreshAssets() { return m_Background.Assets().Refresh(); }
 
     MenuPreferences BackendCore::Preferences() const
     {

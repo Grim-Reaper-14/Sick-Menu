@@ -16,6 +16,18 @@ namespace Sick::Backend
     struct PlayerFeatureSnapshot
     {
         ToggleFeatureSnapshot godMode;
+        ToggleFeatureSnapshot infiniteOxygen;
+        ToggleFeatureSnapshot noRagdoll;
+        ToggleFeatureSnapshot superJump;
+        ToggleFeatureSnapshot seatBelt;
+        ToggleFeatureSnapshot noWantedLevel;
+        int wantedLevel{};
+        ToggleFeatureSnapshot fastRun;
+        ToggleFeatureSnapshot fastSwim;
+        ToggleFeatureSnapshot keepPlayerClean;
+        ToggleFeatureSnapshot aqualung;
+        ToggleFeatureSnapshot noGravity;
+        ToggleFeatureSnapshot waterproof;
     };
 
     struct BackendQueueSnapshot
@@ -88,11 +100,23 @@ namespace Sick::Backend
     struct PlayerFeatureProfile
     {
         bool godMode{};
+        bool infiniteOxygen{};
+        bool noRagdoll{};
+        bool superJump{};
+        bool seatBelt{};
+        bool noWantedLevel{};
+        int wantedLevel{};
+        bool fastRun{};
+        bool fastSwim{};
+        bool keepPlayerClean{};
+        bool aqualung{};
+        bool noGravity{};
+        bool waterproof{};
     };
 
     struct FeatureProfile
     {
-        static constexpr std::uint32_t CurrentVersion = 1;
+        static constexpr std::uint32_t CurrentVersion = 2;
 
         std::uint32_t version{CurrentVersion};
         PlayerFeatureProfile player;

@@ -29,7 +29,21 @@ namespace Sick::Backend
         [[nodiscard]] bool QueueNative(Calls::GameCallHub::Job job);
         [[nodiscard]] bool QueueScript(Calls::GameCallHub::Job job);
         [[nodiscard]] bool QueueFiber(Tasking::GameFiberScheduler::Task task);
+
         void SetGodMode(bool enabled) noexcept;
+        void SetInfiniteOxygen(bool enabled) noexcept;
+        void SetNoRagdoll(bool enabled) noexcept;
+        void SetSuperJump(bool enabled) noexcept;
+        void SetSeatBelt(bool enabled) noexcept;
+        void SetNoWantedLevel(bool enabled) noexcept;
+        void SetWantedLevel(int level) noexcept;
+        void SetFastRun(bool enabled) noexcept;
+        void SetFastSwim(bool enabled) noexcept;
+        void SetKeepPlayerClean(bool enabled) noexcept;
+        void SetAqualung(bool enabled) noexcept;
+        void SetNoGravity(bool enabled) noexcept;
+        void SetWaterproof(bool enabled) noexcept;
+
         [[nodiscard]] bool SaveProfile(std::string_view name);
         [[nodiscard]] bool LoadProfile(std::string_view name);
         [[nodiscard]] bool SaveConfiguration();

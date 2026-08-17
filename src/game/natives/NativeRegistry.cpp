@@ -26,7 +26,23 @@ namespace Sick::Game::Natives
         Register({Hashes::PLAYER_PED_ID, "PLAYER_PED_ID", "PLAYER", 0, false});
         Register({Hashes::PLAYER_ID, "PLAYER_ID", "PLAYER", 0, false});
         Register({Hashes::DOES_ENTITY_EXIST, "DOES_ENTITY_EXIST", "ENTITY", 1, false});
-        Register({Hashes::SET_ENTITY_INVINCIBLE, "SET_ENTITY_INVINCIBLE", "ENTITY", 2, false});
+        Register({Hashes::SET_ENTITY_INVINCIBLE, "SET_ENTITY_INVINCIBLE", "ENTITY", 3, false});
+        Register({Hashes::GET_PLAYER_WANTED_LEVEL, "GET_PLAYER_WANTED_LEVEL", "PLAYER", 1, false});
+        Register({Hashes::SET_PLAYER_WANTED_LEVEL, "SET_PLAYER_WANTED_LEVEL", "PLAYER", 3, false});
+        Register({Hashes::SET_PLAYER_WANTED_LEVEL_NOW, "SET_PLAYER_WANTED_LEVEL_NOW", "PLAYER", 2, false});
+        Register({Hashes::CLEAR_PLAYER_WANTED_LEVEL, "CLEAR_PLAYER_WANTED_LEVEL", "PLAYER", 1, false});
+        Register({Hashes::SET_SUPER_JUMP_THIS_FRAME, "SET_SUPER_JUMP_THIS_FRAME", "PLAYER", 1, false});
+        Register({Hashes::SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER, "SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER", "PLAYER", 2, false});
+        Register({Hashes::SET_SWIM_MULTIPLIER_FOR_PLAYER, "SET_SWIM_MULTIPLIER_FOR_PLAYER", "PLAYER", 2, false});
+        Register({Hashes::SET_PED_MAX_TIME_UNDERWATER, "SET_PED_MAX_TIME_UNDERWATER", "PED", 2, false});
+        Register({Hashes::SET_PED_CAN_RAGDOLL, "SET_PED_CAN_RAGDOLL", "PED", 2, false});
+        Register({Hashes::SET_PED_CONFIG_FLAG, "SET_PED_CONFIG_FLAG", "PED", 3, false});
+        Register({Hashes::CLEAR_PED_ENV_DIRT, "CLEAR_PED_ENV_DIRT", "PED", 1, false});
+        Register({Hashes::RESET_PED_VISIBLE_DAMAGE, "RESET_PED_VISIBLE_DAMAGE", "PED", 1, false});
+        Register({Hashes::CLEAR_PED_BLOOD_DAMAGE, "CLEAR_PED_BLOOD_DAMAGE", "PED", 1, false});
+        Register({Hashes::SET_ENABLE_SCUBA, "SET_ENABLE_SCUBA", "PED", 2, false});
+        Register({Hashes::SET_PED_DIES_IN_WATER, "SET_PED_DIES_IN_WATER", "PED", 2, false});
+        Register({Hashes::SET_ENTITY_HAS_GRAVITY, "SET_ENTITY_HAS_GRAVITY", "ENTITY", 2, false});
     }
 
     void NativeRegistry::Clear()

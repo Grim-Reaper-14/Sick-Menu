@@ -63,12 +63,20 @@ namespace
     Sick::Ui::SickMenuCallbacks MakeCallbacks()
     {
         Sick::Ui::SickMenuCallbacks callbacks{};
-        callbacks.godMode = [](bool enabled) {
-            Sick::Backend::BackendApi::Get().SetGodMode(enabled);
-        };
-        callbacks.regularAction = [] {
-            static_cast<void>(Sick::Backend::BackendApi::Get().RunScriptVmTest());
-        };
+        callbacks.godMode = [](bool enabled) { Sick::Backend::BackendApi::Get().SetGodMode(enabled); };
+        callbacks.infiniteOxygen = [](bool enabled) { Sick::Backend::BackendApi::Get().SetInfiniteOxygen(enabled); };
+        callbacks.noRagdoll = [](bool enabled) { Sick::Backend::BackendApi::Get().SetNoRagdoll(enabled); };
+        callbacks.superJump = [](bool enabled) { Sick::Backend::BackendApi::Get().SetSuperJump(enabled); };
+        callbacks.seatBelt = [](bool enabled) { Sick::Backend::BackendApi::Get().SetSeatBelt(enabled); };
+        callbacks.noWantedLevel = [](bool enabled) { Sick::Backend::BackendApi::Get().SetNoWantedLevel(enabled); };
+        callbacks.wantedLevel = [](int level) { Sick::Backend::BackendApi::Get().SetWantedLevel(level); };
+        callbacks.fastRun = [](bool enabled) { Sick::Backend::BackendApi::Get().SetFastRun(enabled); };
+        callbacks.fastSwim = [](bool enabled) { Sick::Backend::BackendApi::Get().SetFastSwim(enabled); };
+        callbacks.keepPlayerClean = [](bool enabled) { Sick::Backend::BackendApi::Get().SetKeepPlayerClean(enabled); };
+        callbacks.aqualung = [](bool enabled) { Sick::Backend::BackendApi::Get().SetAqualung(enabled); };
+        callbacks.noGravity = [](bool enabled) { Sick::Backend::BackendApi::Get().SetNoGravity(enabled); };
+        callbacks.waterproof = [](bool enabled) { Sick::Backend::BackendApi::Get().SetWaterproof(enabled); };
+        callbacks.regularAction = [] { static_cast<void>(Sick::Backend::BackendApi::Get().RunScriptVmTest()); };
         callbacks.preferencesChanged = [](const Sick::Ui::SickMenuPreferences& preferences) {
             Sick::Backend::BackendApi::Get().SetPreferences({
                 .scale = preferences.scale,
@@ -79,15 +87,9 @@ namespace
                 .font = preferences.font,
             });
         };
-        callbacks.refreshAssets = [] {
-            static_cast<void>(Sick::Backend::BackendApi::Get().RefreshAssets());
-        };
-        callbacks.saveConfiguration = [] {
-            static_cast<void>(Sick::Backend::BackendApi::Get().SaveConfiguration());
-        };
-        callbacks.exitGta = [] {
-            Sick::Backend::BackendApi::Get().RequestExitGta();
-        };
+        callbacks.refreshAssets = [] { static_cast<void>(Sick::Backend::BackendApi::Get().RefreshAssets()); };
+        callbacks.saveConfiguration = [] { static_cast<void>(Sick::Backend::BackendApi::Get().SaveConfiguration()); };
+        callbacks.exitGta = [] { Sick::Backend::BackendApi::Get().RequestExitGta(); };
         return callbacks;
     }
 }
@@ -105,6 +107,18 @@ namespace Sick::Frontend
         auto& backend = Backend::BackendApi::Get();
         const auto snapshot = backend.Snapshot();
         m_Menu.State().godMode = snapshot.player.godMode.requested;
+        m_Menu.State().infiniteOxygen = snapshot.player.infiniteOxygen.requested;
+        m_Menu.State().noRagdoll = snapshot.player.noRagdoll.requested;
+        m_Menu.State().superJump = snapshot.player.superJump.requested;
+        m_Menu.State().seatBelt = snapshot.player.seatBelt.requested;
+        m_Menu.State().noWantedLevel = snapshot.player.noWantedLevel.requested;
+        m_Menu.State().wantedLevel = snapshot.player.wantedLevel;
+        m_Menu.State().fastRun = snapshot.player.fastRun.requested;
+        m_Menu.State().fastSwim = snapshot.player.fastSwim.requested;
+        m_Menu.State().keepPlayerClean = snapshot.player.keepPlayerClean.requested;
+        m_Menu.State().aqualung = snapshot.player.aqualung.requested;
+        m_Menu.State().noGravity = snapshot.player.noGravity.requested;
+        m_Menu.State().waterproof = snapshot.player.waterproof.requested;
 
         if (!m_PreferencesLoaded && snapshot.initialized)
         {
