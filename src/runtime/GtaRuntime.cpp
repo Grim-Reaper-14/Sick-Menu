@@ -5,46 +5,13 @@
 #include "backend/BackendApi.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/enhanced/EnhancedScriptHost.hpp"
-#include "game/natives/NativeContext.hpp"
-#include "game/natives/generated/NativeHashes.hpp"
 
 #include <MinHook.h>
-#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cwchar>
 #include <string>
 #include <thread>
-
-namespace
-{
-    using NativeHandler = Sick::Game::Natives::NativeHandler;
-    std::array<NativeHandler, Sick::Game::Natives::NativeCount> g_RuntimeNativeHandlers{};
-
-    NativeHandler ResolveRuntimeNative(Sick::Game::NativeHash hash, Sick::Game::Enhanced::BuildId)
-    {
-        const auto index = Sick::Game::Natives::Generated::IndexForHash(hash);
-        const auto offset = Sick::Game::Natives::ToNativeOffset(index);
-        return offset < g_RuntimeNativeHandlers.size() ? g_RuntimeNativeHandlers[offset] : nullptr;
-    }
-
-    [[nodiscard]] bool IsExecutableAddress(const void* address) noexcept
-    {
-        if (!address)
-            return false;
-
-        MEMORY_BASIC_INFORMATION information{};
-        if (VirtualQuery(address, &information, sizeof(information)) != sizeof(information))
-            return false;
-        if (information.State != MEM_COMMIT || (information.Protect & PAGE_GUARD) != 0 ||
-            (information.Protect & PAGE_NOACCESS) != 0)
-            return false;
-
-        const auto protection = information.Protect & 0xFFU;
-        return protection == PAGE_EXECUTE || protection == PAGE_EXECUTE_READ ||
-            protection == PAGE_EXECUTE_READWRITE || protection == PAGE_EXECUTE_WRITECOPY;
-    }
-}
 
 namespace
 {
@@ -117,8 +84,7 @@ namespace Sick::Runtime
         const auto swapMatch = FindUnique(*image, "72 C7 EB 02 31 C0 8B 0D");
         const auto runMatch = FindUnique(*image, "BE 40 5D C6 00");
         const auto nativeMatch = FindUnique(*image, "EB 2A 0F 1F 40 00 48 8B 54 17 10");
-        if (!swapMatch || !runMatch || !nativeMatch ||
-            *runMatch < image->base + 0xA || *nativeMatch < image->base + 0x2A)
+        if (!swapMatch || !runMatch || *runMatch < image->base + 0xA)
             return false;
         const auto queueAddress = Rip(*image, *swapMatch + 0x1D);
         const auto swapAddress = Rip(*image, *swapMatch + 0x24);
@@ -128,71 +94,21 @@ namespace Sick::Runtime
         m_CommandQueueAddress = reinterpret_cast<ID3D12CommandQueue**>(*queueAddress);
         m_SwapChainAddress = reinterpret_cast<IDXGISwapChain**>(*swapAddress);
         m_RunScriptThreadsAddress = reinterpret_cast<void*>(*runMatch - 0xA);
-        m_InitNativeTablesAddress = reinterpret_cast<void*>(*nativeMatch - 0x2A);
+        m_InitNativeTablesAddress = nativeMatch && *nativeMatch >= image->base + 0x2A
+            ? reinterpret_cast<void*>(*nativeMatch - 0x2A)
+            : nullptr;
         m_Window = FindGameWindow();
         Log::Write(m_Window ? "GTA window and core patterns resolved" : "GTA window was not found");
+        if (!m_InitNativeTablesAddress)
+            Log::Write("native table pattern unavailable; native backend will remain disabled");
         return m_CommandQueueAddress && m_SwapChainAddress && m_RunScriptThreadsAddress && m_Window;
     }
 
     bool GtaRuntime::InitializeNativeBackend()
     {
-        Log::Write("initializing native backend through InitNativeTables");
         m_NativeBootstrapFinalized = true;
-
-        using InitNativeTablesFn = void (*)(Game::Enhanced::LiveScriptProgram*);
-        if (!m_InitNativeTablesAddress || !IsExecutableAddress(m_InitNativeTablesAddress))
-        {
-            Log::Write("native backend initialization failed: InitNativeTables address is not executable");
-            return false;
-        }
-
-        // Only these four Enhanced crossmap hashes are currently verified for
-        // this runtime. Never pad the request to NativeCount: zero/unverified
-        // entries must not be handed to GTA's InitNativeTables routine.
-        std::array<std::uint64_t, 4> entries{
-            0x259BE71D8A81D4FAULL, // PLAYER_PED_ID
-            0x566C977EEAE1C0D1ULL, // PLAYER_ID
-            0xF3A281B1AA86DBA9ULL, // DOES_ENTITY_EXIST
-            0xD25E9BDC14A0B649ULL, // SET_ENTITY_INVINCIBLE
-        };
-
-        std::fill(g_RuntimeNativeHandlers.begin(), g_RuntimeNativeHandlers.end(), nullptr);
-
-        Game::Enhanced::LiveScriptProgram program{};
-        program.nativeCount = static_cast<std::uint32_t>(entries.size());
-        program.nativeEntrypoints = entries.data();
-        reinterpret_cast<InitNativeTablesFn>(m_InitNativeTablesAddress)(&program);
-
-        for (std::size_t index = 0; index < entries.size(); ++index)
-        {
-            const auto handlerAddress = reinterpret_cast<void*>(entries[index]);
-            if (!IsExecutableAddress(handlerAddress))
-            {
-                std::fill(g_RuntimeNativeHandlers.begin(), g_RuntimeNativeHandlers.end(), nullptr);
-                Log::Write("native backend initialization failed: resolved handler is not executable");
-                return false;
-            }
-            g_RuntimeNativeHandlers[index] = reinterpret_cast<NativeHandler>(handlerAddress);
-        }
-
-        constexpr Game::Enhanced::BuildId ReferenceEnhancedBuild = 115813;
-        const bool initialized = Game::Enhanced::EnhancedGame::InitializeIndexed(
-            ReferenceEnhancedBuild,
-            &ResolveRuntimeNative);
-
-        if (initialized)
-        {
-            Log::Write("native backend ready");
-            return true;
-        }
-
-        // NativeBootstrap now requires a complete generated table before it
-        // reports readiness. With only four verified Enhanced mappings, the
-        // gameplay backend intentionally remains disabled instead of exposing
-        // unresolved slots to feature code.
-        std::fill(g_RuntimeNativeHandlers.begin(), g_RuntimeNativeHandlers.end(), nullptr);
         Log::Write(
-            "native backend incomplete: 4 verified mappings; gameplay natives disabled until the full Enhanced map is available");
+            "native backend held disabled: GTA Enhanced InitNativeTables contract is not fully verified");
         return false;
     }
 
@@ -226,26 +142,12 @@ namespace Sick::Runtime
         }
         Log::Write("Present, ResizeBuffers, and RunScriptThreads hooks enabled");
 
-        SetLastError(ERROR_SUCCESS);
-        const auto previous = SetWindowLongPtrW(
-            m_Window,
-            GWLP_WNDPROC,
-            reinterpret_cast<LONG_PTR>(&WindowProc));
-        const auto windowProcError = GetLastError();
-        if (!previous && windowProcError != ERROR_SUCCESS)
-        {
-            m_OriginalWindowProc = nullptr;
-            m_WndProcInstalled = false;
-            Log::Write(
-                "WndProc subclass failed, Windows error=" + std::to_string(static_cast<unsigned long>(windowProcError)) +
-                "; continuing with render-thread keyboard polling fallback");
-        }
-        else
-        {
-            m_OriginalWindowProc = reinterpret_cast<WNDPROC>(previous);
-            m_WndProcInstalled = true;
-            Log::Write("WndProc subclass installed");
-        }
+        // GTA Enhanced has shown unstable behavior when the injected DLL replaces
+        // the game's WndProc. Input is intentionally handled from the render
+        // thread instead, which avoids changing the game's window procedure.
+        m_OriginalWindowProc = nullptr;
+        m_WndProcInstalled = false;
+        Log::Write("WndProc subclass disabled; using render-thread keyboard polling fallback");
         return true;
     }
 
@@ -281,6 +183,12 @@ namespace Sick::Runtime
             Shutdown();
             return false;
         }
+
+        // Do not attempt GTA's native table initializer while the Enhanced
+        // table layout/mapping contract is incomplete. Native-backed features
+        // remain unavailable instead of risking a process crash.
+        static_cast<void>(InitializeNativeBackend());
+
         Log::Write("DLL initialized; F4 opens the menu and End unloads the DLL");
         return true;
     }
@@ -299,9 +207,23 @@ namespace Sick::Runtime
         if (runtime && !runtime->StopRequested())
         {
             std::scoped_lock lock(runtime->m_RenderMutex);
+            bool initializedThisPresent{};
             if (!runtime->m_Renderer.Ready())
-                static_cast<void>(runtime->m_Renderer.Initialize(swapChain, *runtime->m_CommandQueueAddress, runtime->m_Window));
-            runtime->m_Renderer.Render(!runtime->m_WndProcInstalled);
+            {
+                if (runtime->m_CommandQueueAddress && *runtime->m_CommandQueueAddress)
+                {
+                    initializedThisPresent = runtime->m_Renderer.Initialize(
+                        swapChain,
+                        *runtime->m_CommandQueueAddress,
+                        runtime->m_Window);
+                }
+            }
+
+            // Never submit our first overlay command list from the same Present
+            // invocation that created the renderer resources. Let GTA complete
+            // that Present first and begin drawing on the next frame.
+            if (runtime->m_Renderer.Ready() && !initializedThisPresent)
+                runtime->m_Renderer.Render(true);
         }
         return runtime && runtime->m_OriginalPresent
             ? runtime->m_OriginalPresent(swapChain, syncInterval, flags)
@@ -398,7 +320,6 @@ namespace Sick::Runtime
             std::scoped_lock lock(m_GameMutex);
             Game::Enhanced::EnhancedGame::Shutdown();
         }
-        std::fill(g_RuntimeNativeHandlers.begin(), g_RuntimeNativeHandlers.end(), nullptr);
         m_NativeBootstrapFinalized = false;
         m_NativeBackendRetry = 0;
         m_ScriptHostRetry = 0;
