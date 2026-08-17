@@ -33,13 +33,17 @@ namespace Sick::Game::Enhanced
                 ++resolved;
         }
 
+        const bool complete = resolved == Natives::NativeCount;
         {
             std::scoped_lock lock(m_Mutex);
             m_ResolvedCount = resolved;
-            m_Ready = resolved != 0;
+            m_Ready = complete;
         }
 
-        return resolved != 0;
+        // Indexed native mode is only ready when every generated slot has a
+        // verified handler. Treating a partial table as ready lets gameplay
+        // features execute through an incomplete runtime bridge.
+        return complete;
     }
 
     void NativeBootstrap::Shutdown() noexcept

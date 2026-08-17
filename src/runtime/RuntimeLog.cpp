@@ -51,13 +51,9 @@ namespace Sick::Runtime::Log
                 g_ModuleSize = nt->OptionalHeader.SizeOfImage;
         }
 
-        if (AllocConsole())
-        {
-            SetConsoleTitleW(L"Sick Menu - GTA V Enhanced");
-            FILE* stream{};
-            static_cast<void>(freopen_s(&stream, "CONOUT$", "w", stdout));
-            static_cast<void>(freopen_s(&stream, "CONOUT$", "w", stderr));
-        }
+        // Runtime logging is file/debugger based. Do not allocate a process
+        // console from an injected DLL: the console is unrelated to the GTA
+        // render window and must never control overlay visibility or lifetime.
 
         std::filesystem::path moduleDirectory;
         wchar_t modulePath[MAX_PATH]{};
@@ -90,6 +86,5 @@ namespace Sick::Runtime::Log
             RemoveVectoredExceptionHandler(g_ExceptionHandler);
             g_ExceptionHandler = nullptr;
         }
-        FreeConsole();
     }
 }

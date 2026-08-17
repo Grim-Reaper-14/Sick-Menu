@@ -32,7 +32,11 @@ namespace
         g_LastInvincible = context->GetArgument<bool>(1);
     }
 
-    Reaper::Native::Handler ProvideNative(Reaper::NativeHash hash, Reaper::Enhanced::BuildId build)
+    void NoopHandler(Reaper::Native::Context*)
+    {
+    }
+
+    Reaper::Native::Handler ProvidePartialNative(Reaper::NativeHash hash, Reaper::Enhanced::BuildId build)
     {
         assert(build == 9001);
         ++g_ProviderCalls;
@@ -52,6 +56,13 @@ namespace
         }
     }
 
+    Reaper::Native::Handler ProvideCompleteNative(Reaper::NativeHash hash, Reaper::Enhanced::BuildId build)
+    {
+        if (const auto handler = ProvidePartialNative(hash, build))
+            return handler;
+        return &NoopHandler;
+    }
+
     void* ResolveGlobal(std::size_t index)
     {
         return index < g_Globals.size() ? &g_Globals[index] : nullptr;
@@ -60,10 +71,16 @@ namespace
 
 int main()
 {
-    assert(Reaper::Enhanced::Game::InitializeIndexed(9001, &ProvideNative));
+    g_ProviderCalls = 0;
+    assert(!Reaper::Enhanced::Game::InitializeIndexed(9001, &ProvidePartialNative));
+    assert(!Reaper::Enhanced::Game::Ready());
+    assert(g_ProviderCalls == static_cast<int>(Sick::Game::Natives::NativeCount));
+
+    g_ProviderCalls = 0;
+    assert(Reaper::Enhanced::Game::InitializeIndexed(9001, &ProvideCompleteNative));
     assert(Reaper::Enhanced::Game::Ready());
     assert(g_ProviderCalls == static_cast<int>(Sick::Game::Natives::NativeCount));
-    assert(Reaper::Native::HandlerTable::Get().ResolvedCount() == 4);
+    assert(Reaper::Native::HandlerTable::Get().ResolvedCount() == Sick::Game::Natives::NativeCount);
 
     const Reaper::Ped ped = Reaper::PLAYER::PLAYER_PED_ID();
     assert(ped == 321);

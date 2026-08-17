@@ -54,7 +54,9 @@ namespace Sick::Runtime
         Dx12Renderer m_Renderer;
         std::mutex m_RenderMutex;
         std::mutex m_GameMutex;
+        std::uint32_t m_NativeBackendRetry{};
         std::uint32_t m_ScriptHostRetry{};
+        bool m_NativeBootstrapFinalized{};
         bool m_MinHookInitialized{};
         bool m_WndProcInstalled{};
     };

@@ -9,6 +9,7 @@
 #include "game/natives/generated/NativeHashes.hpp"
 
 #include <MinHook.h>
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cwchar>
@@ -25,6 +26,23 @@ namespace
         const auto index = Sick::Game::Natives::Generated::IndexForHash(hash);
         const auto offset = Sick::Game::Natives::ToNativeOffset(index);
         return offset < g_RuntimeNativeHandlers.size() ? g_RuntimeNativeHandlers[offset] : nullptr;
+    }
+
+    [[nodiscard]] bool IsExecutableAddress(const void* address) noexcept
+    {
+        if (!address)
+            return false;
+
+        MEMORY_BASIC_INFORMATION information{};
+        if (VirtualQuery(address, &information, sizeof(information)) != sizeof(information))
+            return false;
+        if (information.State != MEM_COMMIT || (information.Protect & PAGE_GUARD) != 0 ||
+            (information.Protect & PAGE_NOACCESS) != 0)
+            return false;
+
+        const auto protection = information.Protect & 0xFFU;
+        return protection == PAGE_EXECUTE || protection == PAGE_EXECUTE_READ ||
+            protection == PAGE_EXECUTE_READWRITE || protection == PAGE_EXECUTE_WRITECOPY;
     }
 }
 
@@ -119,16 +137,27 @@ namespace Sick::Runtime
     bool GtaRuntime::InitializeNativeBackend()
     {
         Log::Write("initializing native backend through InitNativeTables");
-        using InitNativeTablesFn = void (*)(Game::Enhanced::LiveScriptProgram*);
-        if (!m_InitNativeTablesAddress)
-            return false;
+        m_NativeBootstrapFinalized = true;
 
-        std::array<std::uint64_t, Game::Natives::NativeCount> entries{
-            0x259BE71D8A81D4FAULL,
-            0x566C977EEAE1C0D1ULL,
-            0xF3A281B1AA86DBA9ULL,
-            0xD25E9BDC14A0B649ULL,
+        using InitNativeTablesFn = void (*)(Game::Enhanced::LiveScriptProgram*);
+        if (!m_InitNativeTablesAddress || !IsExecutableAddress(m_InitNativeTablesAddress))
+        {
+            Log::Write("native backend initialization failed: InitNativeTables address is not executable");
+            return false;
+        }
+
+        // Only these four Enhanced crossmap hashes are currently verified for
+        // this runtime. Never pad the request to NativeCount: zero/unverified
+        // entries must not be handed to GTA's InitNativeTables routine.
+        std::array<std::uint64_t, 4> entries{
+            0x259BE71D8A81D4FAULL, // PLAYER_PED_ID
+            0x566C977EEAE1C0D1ULL, // PLAYER_ID
+            0xF3A281B1AA86DBA9ULL, // DOES_ENTITY_EXIST
+            0xD25E9BDC14A0B649ULL, // SET_ENTITY_INVINCIBLE
         };
+
+        std::fill(g_RuntimeNativeHandlers.begin(), g_RuntimeNativeHandlers.end(), nullptr);
+
         Game::Enhanced::LiveScriptProgram program{};
         program.nativeCount = static_cast<std::uint32_t>(entries.size());
         program.nativeEntrypoints = entries.data();
@@ -136,17 +165,35 @@ namespace Sick::Runtime
 
         for (std::size_t index = 0; index < entries.size(); ++index)
         {
-            if (!entries[index])
+            const auto handlerAddress = reinterpret_cast<void*>(entries[index]);
+            if (!IsExecutableAddress(handlerAddress))
+            {
+                std::fill(g_RuntimeNativeHandlers.begin(), g_RuntimeNativeHandlers.end(), nullptr);
+                Log::Write("native backend initialization failed: resolved handler is not executable");
                 return false;
-            g_RuntimeNativeHandlers[index] = reinterpret_cast<NativeHandler>(entries[index]);
+            }
+            g_RuntimeNativeHandlers[index] = reinterpret_cast<NativeHandler>(handlerAddress);
         }
 
         constexpr Game::Enhanced::BuildId ReferenceEnhancedBuild = 115813;
         const bool initialized = Game::Enhanced::EnhancedGame::InitializeIndexed(
             ReferenceEnhancedBuild,
             &ResolveRuntimeNative);
-        Log::Write(initialized ? "native backend ready" : "native backend initialization failed");
-        return initialized;
+
+        if (initialized)
+        {
+            Log::Write("native backend ready");
+            return true;
+        }
+
+        // NativeBootstrap now requires a complete generated table before it
+        // reports readiness. With only four verified Enhanced mappings, the
+        // gameplay backend intentionally remains disabled instead of exposing
+        // unresolved slots to feature code.
+        std::fill(g_RuntimeNativeHandlers.begin(), g_RuntimeNativeHandlers.end(), nullptr);
+        Log::Write(
+            "native backend incomplete: 4 verified mappings; gameplay natives disabled until the full Enhanced map is available");
+        return false;
     }
 
     bool GtaRuntime::InstallHooks()
@@ -290,9 +337,10 @@ namespace Sick::Runtime
         if (!runtime->StopRequested())
         {
             std::scoped_lock lock(runtime->m_GameMutex);
-            if (!Game::Enhanced::EnhancedGame::Ready() && ++runtime->m_ScriptHostRetry >= 300)
+            if (!Game::Enhanced::EnhancedGame::Ready() && !runtime->m_NativeBootstrapFinalized &&
+                ++runtime->m_NativeBackendRetry >= 300)
             {
-                runtime->m_ScriptHostRetry = 0;
+                runtime->m_NativeBackendRetry = 0;
                 static_cast<void>(runtime->InitializeNativeBackend());
             }
             if (!Game::Enhanced::EnhancedGame::ScriptFunctionsReady() && ++runtime->m_ScriptHostRetry >= 300)
@@ -350,6 +398,10 @@ namespace Sick::Runtime
             std::scoped_lock lock(m_GameMutex);
             Game::Enhanced::EnhancedGame::Shutdown();
         }
+        std::fill(g_RuntimeNativeHandlers.begin(), g_RuntimeNativeHandlers.end(), nullptr);
+        m_NativeBootstrapFinalized = false;
+        m_NativeBackendRetry = 0;
+        m_ScriptHostRetry = 0;
         s_Instance = nullptr;
     }
 }
