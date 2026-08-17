@@ -16,7 +16,7 @@ add_library(sick_native STATIC
     src/backend/BackendCore.cpp
     src/backend/calls/GameCallHub.cpp
     src/backend/features/FeatureManager.cpp
-    src/backend/features/PlayerFeatures.cpp
+    src/backend/features/player/PlayerFeatures.cpp
     src/backend/system/AssetCatalog.cpp
     src/backend/system/BackgroundCore.cpp
     src/backend/system/ConfigManager.cpp

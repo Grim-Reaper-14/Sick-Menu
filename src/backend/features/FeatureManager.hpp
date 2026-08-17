@@ -1,7 +1,7 @@
 #pragma once
 
 #include "backend/BackendTypes.hpp"
-#include "PlayerFeatures.hpp"
+#include "backend/features/player/PlayerFeatures.hpp"
 
 namespace Sick::Backend::Features
 {

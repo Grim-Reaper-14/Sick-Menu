@@ -1,6 +1,18 @@
 #include "PlayerFeatures.hpp"
 
-#include <algorithm>
+#include "Aqualung.hpp"
+#include "FastRun.hpp"
+#include "FastSwim.hpp"
+#include "GodMode.hpp"
+#include "InfiniteOxygen.hpp"
+#include "KeepPlayerClean.hpp"
+#include "NoGravity.hpp"
+#include "NoRagdoll.hpp"
+#include "NoWantedLevel.hpp"
+#include "SeatBelt.hpp"
+#include "SuperJump.hpp"
+#include "WantedLevel.hpp"
+#include "Waterproof.hpp"
 
 namespace Sick::Backend::Features
 {
@@ -10,7 +22,7 @@ namespace Sick::Backend::Features
     void PlayerFeatures::SetSuperJump(bool enabled) noexcept { m_SuperJumpRequested.store(enabled, std::memory_order_release); }
     void PlayerFeatures::SetSeatBelt(bool enabled) noexcept { m_SeatBeltRequested.store(enabled, std::memory_order_release); }
     void PlayerFeatures::SetNoWantedLevel(bool enabled) noexcept { m_NoWantedLevelRequested.store(enabled, std::memory_order_release); }
-    void PlayerFeatures::SetWantedLevel(int level) noexcept { m_WantedLevelRequested.store(std::clamp(level, 0, 5), std::memory_order_release); }
+    void PlayerFeatures::SetWantedLevel(int level) noexcept { m_WantedLevelRequested.store(Player::WantedLevel::Normalize(level), std::memory_order_release); }
     void PlayerFeatures::SetFastRun(bool enabled) noexcept { m_FastRunRequested.store(enabled, std::memory_order_release); }
     void PlayerFeatures::SetFastSwim(bool enabled) noexcept { m_FastSwimRequested.store(enabled, std::memory_order_release); }
     void PlayerFeatures::SetKeepPlayerClean(bool enabled) noexcept { m_KeepPlayerCleanRequested.store(enabled, std::memory_order_release); }
@@ -24,19 +36,19 @@ namespace Sick::Backend::Features
             return;
 
         if (m_GodModeApplied)
-            m_Player.SetInvincible(ped, false);
+            Player::GodMode::Apply(m_Player, ped, false);
         if (m_NoRagdollApplied)
-            m_Player.SetCanRagdoll(ped, true);
+            Player::NoRagdoll::Apply(m_Player, ped, false);
         if (m_SeatBeltApplied)
-            m_Player.SetSeatBelt(ped, false);
+            Player::SeatBelt::Apply(m_Player, ped, false);
         if (m_WaterproofApplied)
-            m_Player.SetWaterproof(ped, false);
+            Player::Waterproof::Apply(m_Player, ped, false);
         if (m_AqualungApplied)
-            m_Player.SetAqualung(ped, false);
+            Player::Aqualung::Apply(m_Player, ped, false);
         if (m_OxygenApplied)
-            m_Player.SetMaxUnderwaterTime(ped, DefaultUnderwaterSeconds);
+            Player::InfiniteOxygen::Apply(m_Player, ped, false);
         if (m_NoGravityApplied)
-            m_Player.SetGravity(ped, true);
+            Player::NoGravity::Apply(m_Player, ped, false);
     }
 
     void PlayerFeatures::ClearPedAppliedState() noexcept
@@ -58,7 +70,7 @@ namespace Sick::Backend::Features
         const bool superJump = m_SuperJumpRequested.load(std::memory_order_acquire);
         const bool seatBelt = m_SeatBeltRequested.load(std::memory_order_acquire);
         const bool noWantedLevel = m_NoWantedLevelRequested.load(std::memory_order_acquire);
-        const int wantedLevel = std::clamp(m_WantedLevelRequested.load(std::memory_order_acquire), 0, 5);
+        const int wantedLevel = Player::WantedLevel::Normalize(m_WantedLevelRequested.load(std::memory_order_acquire));
         const bool fastRun = m_FastRunRequested.load(std::memory_order_acquire);
         const bool fastSwim = m_FastSwimRequested.load(std::memory_order_acquire);
         const bool keepPlayerClean = m_KeepPlayerCleanRequested.load(std::memory_order_acquire);
@@ -128,27 +140,25 @@ namespace Sick::Backend::Features
             {
                 if (godMode != m_GodModeApplied || (refresh && godMode))
                 {
-                    m_Player.SetInvincible(ped, godMode);
+                    Player::GodMode::Apply(m_Player, ped, godMode);
                     m_GodModeApplied = godMode;
                 }
 
                 if (effectiveOxygen != m_OxygenApplied || (refresh && effectiveOxygen))
                 {
-                    m_Player.SetMaxUnderwaterTime(
-                        ped,
-                        effectiveOxygen ? UnlimitedUnderwaterSeconds : DefaultUnderwaterSeconds);
+                    Player::InfiniteOxygen::Apply(m_Player, ped, effectiveOxygen);
                     m_OxygenApplied = effectiveOxygen;
                 }
 
                 if (noRagdoll != m_NoRagdollApplied || (refresh && noRagdoll))
                 {
-                    m_Player.SetCanRagdoll(ped, !noRagdoll);
+                    Player::NoRagdoll::Apply(m_Player, ped, noRagdoll);
                     m_NoRagdollApplied = noRagdoll;
                 }
 
                 if (seatBelt != m_SeatBeltApplied || (refresh && seatBelt))
                 {
-                    m_Player.SetSeatBelt(ped, seatBelt);
+                    Player::SeatBelt::Apply(m_Player, ped, seatBelt);
                     m_SeatBeltApplied = seatBelt;
                 }
 
@@ -156,13 +166,13 @@ namespace Sick::Backend::Features
                 {
                     // Waterproof is frame-maintained because GTA can restore its
                     // swimming/scuba flags while the ped is submerged.
-                    m_Player.SetWaterproof(ped, waterproof);
+                    Player::Waterproof::Apply(m_Player, ped, waterproof);
                     m_WaterproofApplied = waterproof;
                 }
 
                 if (effectiveAqualung != m_AqualungApplied || (refresh && effectiveAqualung))
                 {
-                    m_Player.SetAqualung(ped, effectiveAqualung);
+                    Player::Aqualung::Apply(m_Player, ped, effectiveAqualung);
                     m_AqualungApplied = effectiveAqualung;
                 }
 
@@ -170,12 +180,12 @@ namespace Sick::Backend::Features
                 {
                     // Waterproof wants normal gravity so the ped settles on the sea floor.
                     // Explicit No Gravity takes precedence when both toggles are enabled.
-                    m_Player.SetGravity(ped, !noGravity);
+                    Player::NoGravity::Apply(m_Player, ped, noGravity);
                     m_NoGravityApplied = noGravity;
                 }
 
                 if (keepPlayerClean && (cleanDue || pedChanged))
-                    m_Player.Clean(ped);
+                    Player::KeepPlayerClean::Apply(m_Player, ped);
 
                 m_GodModeActive.store(godMode && m_GodModeApplied, std::memory_order_release);
                 m_NoRagdollActive.store(noRagdoll && m_NoRagdollApplied, std::memory_order_release);
@@ -218,37 +228,32 @@ namespace Sick::Backend::Features
 
         if (superJump)
         {
-            m_Player.SetSuperJump(player);
+            Player::SuperJump::Apply(m_Player, player);
             m_SuperJumpActive.store(true, std::memory_order_release);
         }
 
         if (fastRun != m_FastRunApplied)
         {
-            m_Player.SetRunMultiplier(
-                player,
-                fastRun ? FastMovementMultiplier : DefaultMovementMultiplier);
+            Player::FastRun::Apply(m_Player, player, fastRun);
             m_FastRunApplied = fastRun;
             m_FastRunActive.store(fastRun, std::memory_order_release);
         }
 
         if (fastSwim != m_FastSwimApplied)
         {
-            m_Player.SetSwimMultiplier(
-                player,
-                fastSwim ? FastMovementMultiplier : DefaultMovementMultiplier);
+            Player::FastSwim::Apply(m_Player, player, fastSwim);
             m_FastSwimApplied = fastSwim;
             m_FastSwimActive.store(fastSwim, std::memory_order_release);
         }
 
         if (noWantedLevel)
         {
-            if (m_Player.WantedLevel(player) != 0)
-                m_Player.ClearWantedLevel(player);
+            Player::NoWantedLevel::Apply(m_Player, player);
             m_NoWantedLevelActive.store(true, std::memory_order_release);
         }
         else if (wantedStateChanged || wantedValueChanged)
         {
-            m_Player.SetWantedLevel(player, wantedLevel);
+            Player::WantedLevel::Apply(m_Player, player, wantedLevel);
             m_WantedLevelApplied = wantedLevel;
         }
 
@@ -320,7 +325,7 @@ namespace Sick::Backend::Features
                 .requested = m_NoWantedLevelRequested.load(std::memory_order_acquire),
                 .active = m_NoWantedLevelActive.load(std::memory_order_acquire),
             },
-            .wantedLevel = std::clamp(m_WantedLevelRequested.load(std::memory_order_acquire), 0, 5),
+            .wantedLevel = Player::WantedLevel::Normalize(m_WantedLevelRequested.load(std::memory_order_acquire)),
             .fastRun = {
                 .requested = m_FastRunRequested.load(std::memory_order_acquire),
                 .active = m_FastRunActive.load(std::memory_order_acquire),
