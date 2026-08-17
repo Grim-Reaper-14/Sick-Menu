@@ -77,6 +77,44 @@ namespace
         return "UNKNOWN";
     }
 
+    const char* SessionSwitchStatusText(Sick::Backend::SessionSwitchState state) noexcept
+    {
+        using State = Sick::Backend::SessionSwitchState;
+        switch (state)
+        {
+        case State::Idle: return "READY";
+        case State::Queued: return "QUEUED";
+        case State::Switching: return "SWITCHING SESSION";
+        case State::Complete: return "SWITCH REQUESTED";
+        case State::ScriptUnavailable: return "SCRIPT RUNTIME UNAVAILABLE";
+        case State::GlobalUnavailable: return "SESSION GLOBAL UNAVAILABLE";
+        case State::Failed: return "SESSION SWITCH FAILED";
+        }
+        return "UNKNOWN";
+    }
+
+    const char* PersonalVehicleSaveStatusText(Sick::Backend::PersonalVehicleSaveState state) noexcept
+    {
+        using State = Sick::Backend::PersonalVehicleSaveState;
+        switch (state)
+        {
+        case State::Idle: return "READY";
+        case State::Queued: return "QUEUED";
+        case State::Validating: return "VALIDATING VEHICLE";
+        case State::WaitingForGarageSelection: return "SELECT GARAGE";
+        case State::Complete: return "GARAGE FLOW COMPLETE";
+        case State::NativeUnavailable: return "NATIVE BACKEND UNAVAILABLE";
+        case State::ScriptUnavailable: return "SCRIPT RUNTIME UNAVAILABLE";
+        case State::RewardScriptUnavailable: return "VEHICLE REWARD SCRIPT INACTIVE";
+        case State::GlobalUnavailable: return "PERSONAL VEHICLE GLOBAL UNAVAILABLE";
+        case State::NoVehicle: return "ENTER A VEHICLE";
+        case State::InvalidVehicle: return "VEHICLE CANNOT BE SAVED";
+        case State::AlreadyPersonal: return "ALREADY A PERSONAL VEHICLE";
+        case State::Failed: return "GARAGE SAVE FAILED";
+        }
+        return "UNKNOWN";
+    }
+
     Sick::Ui::SickMenuCallbacks MakeCallbacks()
     {
         Sick::Ui::SickMenuCallbacks callbacks{};
@@ -105,6 +143,13 @@ namespace
         callbacks.putVehicleOnGround = [] { Sick::Backend::BackendApi::Get().PutVehicleOnGround(); };
         callbacks.spawnVehicle = [](std::string_view modelName, bool enterVehicle) {
             static_cast<void>(Sick::Backend::BackendApi::Get().SpawnVehicle(modelName, enterVehicle));
+        };
+        callbacks.switchOnlineSession = [](std::int32_t type) {
+            static_cast<void>(Sick::Backend::BackendApi::Get().SwitchOnlineSession(
+                static_cast<Sick::Backend::OnlineSessionType>(type)));
+        };
+        callbacks.saveCurrentVehicleToPersonalGarage = [] {
+            static_cast<void>(Sick::Backend::BackendApi::Get().SaveCurrentVehicleToPersonalGarage());
         };
 
         callbacks.handlingValue = [](Sick::Handling::Field field, float value) {
@@ -175,6 +220,10 @@ namespace Sick::Frontend
         m_Menu.State().vehicleNoCollision = snapshot.vehicle.noCollision.requested;
         m_Menu.State().vehicleSpawnerBusy = snapshot.vehicleSpawner.busy;
         m_Menu.State().vehicleSpawnerStatus = VehicleSpawnerStatusText(snapshot.vehicleSpawner.state);
+        m_Menu.State().onlineSessionBusy = snapshot.sessionSwitch.busy;
+        m_Menu.State().onlineSessionStatus = SessionSwitchStatusText(snapshot.sessionSwitch.state);
+        m_Menu.State().personalVehicleSaveBusy = snapshot.personalVehicleSave.busy;
+        m_Menu.State().personalVehicleSaveStatus = PersonalVehicleSaveStatusText(snapshot.personalVehicleSave.state);
 
         m_Menu.State().handlingAvailable = snapshot.handling.backendAvailable;
         m_Menu.State().handlingVehicleAttached = snapshot.handling.vehicleAttached;

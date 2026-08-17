@@ -36,6 +36,8 @@ namespace Sick::Backend
         void CleanVehicle() noexcept;
         void PutVehicleOnGround() noexcept;
         [[nodiscard]] bool SpawnVehicle(std::string_view modelName, bool enterVehicle);
+        [[nodiscard]] bool SwitchOnlineSession(OnlineSessionType type);
+        [[nodiscard]] bool SaveCurrentVehicleToPersonalGarage();
 
         void SetHandlingEditorActive(bool active) noexcept;
         void SetHandlingValue(Handling::Field field, float value) noexcept;

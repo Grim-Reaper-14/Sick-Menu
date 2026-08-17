@@ -41,6 +41,7 @@ namespace Sick::Game::Natives
         inline constexpr NativeHash SET_VEHICLE_PETROL_TANK_HEALTH = Generated::HashFor(NativeIndex::SET_VEHICLE_PETROL_TANK_HEALTH);
         inline constexpr NativeHash GET_ENTITY_COORDS = Generated::HashFor(NativeIndex::GET_ENTITY_COORDS);
         inline constexpr NativeHash GET_ENTITY_HEADING = Generated::HashFor(NativeIndex::GET_ENTITY_HEADING);
+        inline constexpr NativeHash GET_ENTITY_MODEL = Generated::HashFor(NativeIndex::GET_ENTITY_MODEL);
         inline constexpr NativeHash IS_MODEL_IN_CDIMAGE = Generated::HashFor(NativeIndex::IS_MODEL_IN_CDIMAGE);
         inline constexpr NativeHash IS_MODEL_A_VEHICLE = Generated::HashFor(NativeIndex::IS_MODEL_A_VEHICLE);
         inline constexpr NativeHash REQUEST_MODEL = Generated::HashFor(NativeIndex::REQUEST_MODEL);
@@ -187,6 +188,11 @@ namespace Sick::Game::Natives
         [[nodiscard]] inline float GET_ENTITY_HEADING(Entity entity) noexcept
         {
             return NativeInvoker::Invoke<NativeIndex::GET_ENTITY_HEADING, float, false>(entity);
+        }
+
+        [[nodiscard]] inline Hash GET_ENTITY_MODEL(Entity entity) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::GET_ENTITY_MODEL, Hash, false>(entity);
         }
     }
 

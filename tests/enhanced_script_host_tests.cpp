@@ -129,6 +129,9 @@ namespace
             g_Programs.size()}));
         CHECK(Host::Ready());
         CHECK(Host::LastError() == Sick::Game::Enhanced::EnhancedScriptHostError::None);
+        CHECK(Host::LocalAddress(Script, 20, 4) == g_Stack.data() + 20);
+        CHECK(Host::LocalAddress(Script, g_Stack.size() - 1, 2) == nullptr);
+        CHECK(Host::LocalAddress(Reaper::Joaat("missing_script"), 20, 1) == nullptr);
 
         const auto* spec = Reaper::ScriptFunctions::Find(
             Reaper::KnownScriptFunction::ApplyMpsvData);

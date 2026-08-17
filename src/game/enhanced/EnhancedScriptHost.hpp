@@ -146,6 +146,10 @@ namespace Sick::Game::Enhanced
         static void Shutdown() noexcept;
 
         [[nodiscard]] static bool Ready() noexcept;
+        [[nodiscard]] static std::uint64_t* LocalAddress(
+            Scripts::ScriptHash script,
+            std::size_t index,
+            std::size_t count = 1) noexcept;
         [[nodiscard]] static EnhancedScriptHostError LastError() noexcept;
         [[nodiscard]] static std::string_view ErrorMessage(EnhancedScriptHostError error) noexcept;
 

@@ -2,11 +2,17 @@
 
 #include "backend/system/LoggerApi.hpp"
 #include "backend/tasking/TaskAffinity.hpp"
+#include "game/enhanced/EnhancedScriptHost.hpp"
+#include "game/enhanced/ScriptGlobal.hpp"
+#include "game/natives/Natives.hpp"
 #include "game/natives/NativeSystem.hpp"
+#include "game/scripts/ScriptFunctionCatalog.hpp"
 #include "game/scripts/ScriptRuntime.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
+#include <cstdint>
 #include <utility>
 
 namespace Sick::Backend
@@ -18,6 +24,54 @@ namespace Sick::Backend
             return static_cast<std::uint64_t>(
                 std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::steady_clock::now() - start).count());
+        }
+
+        [[nodiscard]] bool ValidSessionType(Sick::Backend::OnlineSessionType type) noexcept
+        {
+            using Type = Sick::Backend::OnlineSessionType;
+            switch (type)
+            {
+            case Type::Public:
+            case Type::SoloPublic:
+            case Type::ClosedCrew:
+            case Type::Crew:
+            case Type::ClosedFriends:
+            case Type::FindFriend:
+            case Type::Solo:
+            case Type::InviteOnly:
+            case Type::JoinCrew:
+            case Type::SpectatorTv:
+            case Type::LeaveOnline:
+                return true;
+            }
+            return false;
+        }
+
+        constexpr auto RewardScript = Sick::Game::Scripts::Joaat("am_mp_vehicle_reward");
+        constexpr std::array<Sick::Game::Scripts::ScriptHash, 7> PersonalVehicleBlacklist{
+            Sick::Game::Scripts::Joaat("rcbandito"),
+            Sick::Game::Scripts::Joaat("minitank"),
+            Sick::Game::Scripts::Joaat("thruster"),
+            Sick::Game::Scripts::Joaat("terbyte"),
+            Sick::Game::Scripts::Joaat("avenger"),
+            Sick::Game::Scripts::Joaat("policet3"),
+            Sick::Game::Scripts::Joaat("brickade2"),
+        };
+
+        [[nodiscard]] bool IsPersonalVehicleBlacklisted(Sick::Game::Scripts::ScriptHash model) noexcept
+        {
+            return std::ranges::find(PersonalVehicleBlacklist, model) != PersonalVehicleBlacklist.end();
+        }
+
+        void ClearVehicleRewardLocals() noexcept
+        {
+            auto* reward = Sick::Game::Enhanced::EnhancedScriptHost::LocalAddress(RewardScript, 148, 47);
+            if (!reward)
+                return;
+            reward[3] = 0;
+            reward[4] = 0;
+            reward[5] = 0;
+            reward[6] = 0;
         }
     }
 
@@ -63,6 +117,11 @@ namespace Sick::Backend
         m_VehicleSpawner.Reset();
         m_NativeReady.store(false, std::memory_order_release);
         m_ScriptReady.store(false, std::memory_order_release);
+        m_SessionSwitchState.store(SessionSwitchState::Idle, std::memory_order_release);
+        m_SessionSwitchTarget.store(OnlineSessionType::Public, std::memory_order_release);
+        m_PersonalVehicleSaveRequested.store(false, std::memory_order_release);
+        m_PersonalVehicleSaveAttempts.store(0, std::memory_order_release);
+        m_PersonalVehicleSaveState.store(PersonalVehicleSaveState::Idle, std::memory_order_release);
         m_Performance.Reset();
     }
 
@@ -81,6 +140,7 @@ namespace Sick::Backend
             m_Features.ApplyHandlingValues(*handling);
 
         m_Features.Tick(nativeReady);
+        TickPersonalVehicleSave(nativeReady, scriptReady);
 
         const auto afterFeatures = ElapsedMicros(start);
         const auto callBudget = afterFeatures < m_MaxBackendMicros
@@ -157,6 +217,205 @@ namespace Sick::Backend
         return true;
     }
 
+    bool BackendCore::SwitchOnlineSession(OnlineSessionType type)
+    {
+        m_SessionSwitchTarget.store(type, std::memory_order_release);
+        if (!ValidSessionType(type))
+        {
+            m_SessionSwitchState.store(SessionSwitchState::Failed, std::memory_order_release);
+            return false;
+        }
+
+        const auto state = m_SessionSwitchState.load(std::memory_order_acquire);
+        if (state == SessionSwitchState::Queued || state == SessionSwitchState::Switching)
+            return false;
+
+        if (!m_ScriptReady.load(std::memory_order_acquire))
+        {
+            m_SessionSwitchState.store(SessionSwitchState::ScriptUnavailable, std::memory_order_release);
+            return false;
+        }
+
+        m_SessionSwitchState.store(SessionSwitchState::Queued, std::memory_order_release);
+        if (!QueueScript([this, type] {
+                m_SessionSwitchState.store(SessionSwitchState::Switching, std::memory_order_release);
+                const auto* specification = Game::Scripts::ScriptFunctionCatalog::Find(
+                    Game::Scripts::KnownScriptFunction::SendToClouds);
+                if (!specification)
+                {
+                    m_SessionSwitchState.store(SessionSwitchState::Failed, std::memory_order_release);
+                    return;
+                }
+
+                Game::Enhanced::ScriptGlobal joinTypeGlobal{1575048};
+                auto* joinType = joinTypeGlobal.As<std::int32_t*>();
+                if (!joinType)
+                {
+                    m_SessionSwitchState.store(SessionSwitchState::GlobalUnavailable, std::memory_order_release);
+                    return;
+                }
+
+                const auto sendToClouds = specification->Bind();
+                if (!sendToClouds.TryCallVoid())
+                {
+                    m_SessionSwitchState.store(SessionSwitchState::ScriptUnavailable, std::memory_order_release);
+                    return;
+                }
+
+                *joinType = static_cast<std::int32_t>(type);
+                m_SessionSwitchState.store(SessionSwitchState::Complete, std::memory_order_release);
+            }))
+        {
+            m_SessionSwitchState.store(SessionSwitchState::Failed, std::memory_order_release);
+            return false;
+        }
+        return true;
+    }
+
+    bool BackendCore::SaveCurrentVehicleToPersonalGarage()
+    {
+        const auto state = m_PersonalVehicleSaveState.load(std::memory_order_acquire);
+        if (state == PersonalVehicleSaveState::Queued ||
+            state == PersonalVehicleSaveState::Validating ||
+            state == PersonalVehicleSaveState::WaitingForGarageSelection)
+        {
+            return false;
+        }
+
+        m_PersonalVehicleSaveState.store(PersonalVehicleSaveState::Queued, std::memory_order_release);
+        m_PersonalVehicleSaveAttempts.store(0, std::memory_order_release);
+        m_PersonalVehicleSaveRequested.store(true, std::memory_order_release);
+        return true;
+    }
+
+    void BackendCore::TickPersonalVehicleSave(bool nativeReady, bool scriptReady) noexcept
+    {
+        if (!m_PersonalVehicleSaveRequested.load(std::memory_order_acquire))
+            return;
+
+        const auto finish = [this](PersonalVehicleSaveState state, bool clearReward = false) {
+            if (clearReward)
+                ClearVehicleRewardLocals();
+            m_PersonalVehicleSaveRequested.store(false, std::memory_order_release);
+            m_PersonalVehicleSaveAttempts.store(0, std::memory_order_release);
+            m_PersonalVehicleSaveState.store(state, std::memory_order_release);
+        };
+
+        if (!nativeReady)
+        {
+            finish(PersonalVehicleSaveState::NativeUnavailable, true);
+            return;
+        }
+        if (!scriptReady)
+        {
+            finish(PersonalVehicleSaveState::ScriptUnavailable, true);
+            return;
+        }
+
+        m_PersonalVehicleSaveState.store(PersonalVehicleSaveState::Validating, std::memory_order_release);
+        const auto ped = Game::Natives::PLAYER::PLAYER_PED_ID();
+        const auto vehicle = Game::Natives::PED::GET_VEHICLE_PED_IS_IN(ped, false);
+        if (vehicle == 0 || !Game::Natives::ENTITY::DOES_ENTITY_EXIST(vehicle))
+        {
+            finish(PersonalVehicleSaveState::NoVehicle, true);
+            return;
+        }
+
+        const auto model = Game::Natives::ENTITY::GET_ENTITY_MODEL(vehicle);
+        if (IsPersonalVehicleBlacklisted(model))
+        {
+            finish(PersonalVehicleSaveState::InvalidVehicle, true);
+            return;
+        }
+
+        const auto* validSpec = Game::Scripts::ScriptFunctionCatalog::Find(
+            Game::Scripts::KnownScriptFunction::IsVehicleValidForPersonalVehicle);
+        if (!validSpec)
+        {
+            finish(PersonalVehicleSaveState::Failed, true);
+            return;
+        }
+        const auto isVehicleValid = validSpec->Bind();
+        const auto valid = isVehicleValid.TryCall<bool>(model);
+        if (!valid)
+        {
+            finish(PersonalVehicleSaveState::ScriptUnavailable, true);
+            return;
+        }
+        if (!*valid)
+        {
+            finish(PersonalVehicleSaveState::InvalidVehicle, true);
+            return;
+        }
+
+        Game::Enhanced::ScriptGlobal personalVehicleGlobal{2733326};
+        auto* personalVehicle = personalVehicleGlobal.At(301).As<std::int32_t*>();
+        if (!personalVehicle)
+        {
+            finish(PersonalVehicleSaveState::GlobalUnavailable, true);
+            return;
+        }
+        if (*personalVehicle == vehicle)
+        {
+            finish(PersonalVehicleSaveState::AlreadyPersonal, true);
+            return;
+        }
+
+        auto* reward = Game::Enhanced::EnhancedScriptHost::LocalAddress(RewardScript, 148, 47);
+        auto* vehicleMenuData = Game::Enhanced::EnhancedScriptHost::LocalAddress(RewardScript, 195, 1);
+        if (!reward || !vehicleMenuData)
+        {
+            finish(PersonalVehicleSaveState::RewardScriptUnavailable, true);
+            return;
+        }
+
+        const auto* rewardSpec = Game::Scripts::ScriptFunctionCatalog::Find(
+            Game::Scripts::KnownScriptFunction::GiveVehicleReward);
+        if (!rewardSpec)
+        {
+            finish(PersonalVehicleSaveState::Failed, true);
+            return;
+        }
+        const auto giveVehicleReward = rewardSpec->Bind();
+        const auto opened = giveVehicleReward.TryCall<bool>(
+            vehicle,
+            vehicleMenuData,
+            reward + 3,
+            reward + 4,
+            reward + 5,
+            reward + 6,
+            false,
+            true,
+            true,
+            false,
+            0,
+            -1);
+        if (!opened)
+        {
+            finish(PersonalVehicleSaveState::ScriptUnavailable, true);
+            return;
+        }
+        if (!*opened)
+        {
+            const auto attempts = m_PersonalVehicleSaveAttempts.fetch_add(1, std::memory_order_acq_rel) + 1;
+            if (attempts >= 600)
+                finish(PersonalVehicleSaveState::Failed, true);
+            return;
+        }
+
+        const auto controlStatus = static_cast<std::int32_t>(reward[6] & 0xFFFFFFFFULL);
+        if (controlStatus == 3)
+        {
+            m_PersonalVehicleSaveAttempts.store(0, std::memory_order_release);
+            m_PersonalVehicleSaveState.store(
+                PersonalVehicleSaveState::WaitingForGarageSelection,
+                std::memory_order_release);
+            return;
+        }
+
+        finish(PersonalVehicleSaveState::Complete, true);
+    }
+
     void BackendCore::SetHandlingEditorActive(bool active) noexcept { m_Features.SetHandlingEditorActive(active); }
     void BackendCore::SetHandlingValue(Handling::Field field, float value) noexcept { m_Features.SetHandlingValue(field, value); }
     void BackendCore::RestoreOriginalHandling() noexcept { m_Features.RestoreOriginalHandling(); }
@@ -228,6 +487,8 @@ namespace Sick::Backend
         const auto player = m_Features.PlayerSnapshot();
         const auto vehicle = m_Features.VehicleSnapshot();
         const auto vehicleSpawner = m_VehicleSpawner.Snapshot();
+        const auto sessionSwitchState = m_SessionSwitchState.load(std::memory_order_acquire);
+        const auto personalVehicleSaveState = m_PersonalVehicleSaveState.load(std::memory_order_acquire);
         const auto handling = m_Features.HandlingSnapshot();
         const auto performance = m_Performance.Snapshot();
         const auto background = m_Background.Snapshot();
@@ -238,6 +499,18 @@ namespace Sick::Backend
             .player = player,
             .vehicle = vehicle,
             .vehicleSpawner = vehicleSpawner,
+            .sessionSwitch = {
+                .state = sessionSwitchState,
+                .target = m_SessionSwitchTarget.load(std::memory_order_acquire),
+                .busy = sessionSwitchState == SessionSwitchState::Queued ||
+                    sessionSwitchState == SessionSwitchState::Switching,
+            },
+            .personalVehicleSave = {
+                .state = personalVehicleSaveState,
+                .busy = personalVehicleSaveState == PersonalVehicleSaveState::Queued ||
+                    personalVehicleSaveState == PersonalVehicleSaveState::Validating ||
+                    personalVehicleSaveState == PersonalVehicleSaveState::WaitingForGarageSelection,
+            },
             .handling = handling,
             .queues = {
                 .gameCalls = m_CallHub.Pending(),

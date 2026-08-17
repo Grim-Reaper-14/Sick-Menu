@@ -55,6 +55,8 @@ namespace Sick::Backend
         void CleanVehicle() noexcept;
         void PutVehicleOnGround() noexcept;
         [[nodiscard]] bool SpawnVehicle(std::string_view modelName, bool enterVehicle);
+        [[nodiscard]] bool SwitchOnlineSession(OnlineSessionType type);
+        [[nodiscard]] bool SaveCurrentVehicleToPersonalGarage();
 
         void SetHandlingEditorActive(bool active) noexcept;
         void SetHandlingValue(Handling::Field field, float value) noexcept;
@@ -85,6 +87,8 @@ namespace Sick::Backend
     private:
         BackendCore() = default;
 
+        void TickPersonalVehicleSave(bool nativeReady, bool scriptReady) noexcept;
+
         Calls::GameCallHub m_CallHub;
         Features::FeatureManager m_Features;
         Features::OnlineVehicleSpawner::VehicleSpawner m_VehicleSpawner;
@@ -96,6 +100,11 @@ namespace Sick::Backend
         std::atomic_bool m_NativeReady{};
         std::atomic_bool m_ScriptReady{};
         std::atomic_bool m_ExitGtaRequested{};
+        std::atomic<SessionSwitchState> m_SessionSwitchState{SessionSwitchState::Idle};
+        std::atomic<OnlineSessionType> m_SessionSwitchTarget{OnlineSessionType::Public};
+        std::atomic<PersonalVehicleSaveState> m_PersonalVehicleSaveState{PersonalVehicleSaveState::Idle};
+        std::atomic_bool m_PersonalVehicleSaveRequested{};
+        std::atomic<std::uint32_t> m_PersonalVehicleSaveAttempts{};
         std::size_t m_MaxGameJobsPerTick{16};
         std::size_t m_MaxFiberResumesPerTick{8};
         std::uint64_t m_MaxBackendMicros{250};

@@ -87,6 +87,12 @@ namespace Sick::Ui
         bool vehicleSpawnerBusy{};
         std::string vehicleSpawnerStatus{"READY"};
 
+        std::size_t onlineSessionType{};
+        bool onlineSessionBusy{};
+        std::string onlineSessionStatus{"READY"};
+        bool personalVehicleSaveBusy{};
+        std::string personalVehicleSaveStatus{"READY"};
+
         bool handlingAvailable{};
         bool handlingVehicleAttached{};
         Handling::Values handlingValues{};
@@ -131,6 +137,8 @@ namespace Sick::Ui
         std::function<void()> cleanVehicle;
         std::function<void()> putVehicleOnGround;
         std::function<void(std::string_view, bool)> spawnVehicle;
+        std::function<void(std::int32_t)> switchOnlineSession;
+        std::function<void()> saveCurrentVehicleToPersonalGarage;
 
         std::function<void(Handling::Field, float)> handlingValue;
         std::function<void()> restoreOriginalHandling;

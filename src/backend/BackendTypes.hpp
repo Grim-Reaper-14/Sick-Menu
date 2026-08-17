@@ -61,6 +61,62 @@ namespace Sick::Backend
         bool busy{};
     };
 
+    enum class OnlineSessionType : std::int32_t
+    {
+        Public = 0,
+        SoloPublic = 1,
+        ClosedCrew = 2,
+        Crew = 3,
+        ClosedFriends = 6,
+        FindFriend = 9,
+        Solo = 10,
+        InviteOnly = 11,
+        JoinCrew = 12,
+        SpectatorTv = 13,
+        LeaveOnline = -1,
+    };
+
+    enum class SessionSwitchState : std::uint8_t
+    {
+        Idle,
+        Queued,
+        Switching,
+        Complete,
+        ScriptUnavailable,
+        GlobalUnavailable,
+        Failed,
+    };
+
+    struct SessionSwitchSnapshot
+    {
+        SessionSwitchState state{SessionSwitchState::Idle};
+        OnlineSessionType target{OnlineSessionType::Public};
+        bool busy{};
+    };
+
+    enum class PersonalVehicleSaveState : std::uint8_t
+    {
+        Idle,
+        Queued,
+        Validating,
+        WaitingForGarageSelection,
+        Complete,
+        NativeUnavailable,
+        ScriptUnavailable,
+        RewardScriptUnavailable,
+        GlobalUnavailable,
+        NoVehicle,
+        InvalidVehicle,
+        AlreadyPersonal,
+        Failed,
+    };
+
+    struct PersonalVehicleSaveSnapshot
+    {
+        PersonalVehicleSaveState state{PersonalVehicleSaveState::Idle};
+        bool busy{};
+    };
+
     struct HandlingFeatureSnapshot
     {
         bool backendAvailable{};
@@ -139,6 +195,8 @@ namespace Sick::Backend
         PlayerFeatureSnapshot player;
         VehicleFeatureSnapshot vehicle;
         VehicleSpawnerSnapshot vehicleSpawner;
+        SessionSwitchSnapshot sessionSwitch;
+        PersonalVehicleSaveSnapshot personalVehicleSave;
         HandlingFeatureSnapshot handling;
         BackendQueueSnapshot queues;
         BackendPerformanceSnapshot performance;

@@ -13,11 +13,16 @@
 #include "categories/menu_settings/Themes.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <utility>
 
 namespace
 {
+    constexpr std::array<std::int32_t, 11> OnlineSessionValues{
+        0, 1, 13, 3, 12, 2, 6, 9, 11, 10, -1,
+    };
+
     template <typename Callback, typename... Arguments>
     void Notify(Callback& callback, Arguments&&... arguments)
     {
@@ -127,7 +132,39 @@ namespace Sick::Ui
         m_TeleportPage.AddLabel("No options yet");
         m_TunablesPage.AddLabel("No options yet");
         m_UnlocksPage.AddLabel("No options yet");
-        m_OnlineServicesPage.AddLabel("No options yet");
+        m_OnlineServicesPage.AddInfo("Session Status", [this]() {
+            return m_State.onlineSessionStatus;
+        });
+        m_OnlineServicesPage.AddChoice(
+            "Session Type",
+            m_State.onlineSessionType,
+            {
+                "Public",
+                "Solo Public",
+                "SCTV",
+                "Crew",
+                "Join Crew",
+                "Closed Crew",
+                "Closed Friend",
+                "Find Friend",
+                "Invite Only",
+                "Solo",
+                "Leave Online",
+            });
+        m_OnlineServicesPage.AddAction("Switch Session", [this]() {
+            if (m_State.onlineSessionType < OnlineSessionValues.size())
+                Notify(m_Callbacks.switchOnlineSession, OnlineSessionValues[m_State.onlineSessionType]);
+        }).EnabledWhen([this]() {
+            return !m_State.onlineSessionBusy;
+        }).Describe("Requests the selected GTA Online session type through shop_controller.");
+        m_OnlineServicesPage.AddInfo("Garage Status", [this]() {
+            return m_State.personalVehicleSaveStatus;
+        });
+        m_OnlineServicesPage.AddAction("Save Current Vehicle To Garage", [this]() {
+            Notify(m_Callbacks.saveCurrentVehicleToPersonalGarage);
+        }).EnabledWhen([this]() {
+            return !m_State.personalVehicleSaveBusy;
+        }).Describe("Opens GTA's personal-vehicle garage save flow for the vehicle you are currently driving.");
         BuildVehicleSpawnerPages();
         m_OnlineProtectionPage.AddLabel("No options yet");
 
@@ -149,13 +186,12 @@ namespace Sick::Ui
             auto page = std::make_unique<MenuPage>(
                 std::string{"SPAWNER / "} + std::string{category});
 
-            for (const auto& entry : OnlineVehicleSpawner::Vehicles)
+            for (const auto model : OnlineVehicleSpawner::Vehicles)
             {
-                if (entry.category != category)
+                if (OnlineVehicleSpawner::CategoryFor(model) != category)
                     continue;
 
-                const auto model = entry.model;
-                page->AddAction(std::string{entry.label}, [this, model]() {
+                page->AddAction(std::string{model}, [this, model]() {
                     Notify(m_Callbacks.spawnVehicle, model, m_State.vehicleSpawnerEnterVehicle);
                 }).EnabledWhen([this]() {
                     return !m_State.vehicleSpawnerBusy;

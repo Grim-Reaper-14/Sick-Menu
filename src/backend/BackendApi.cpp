@@ -42,6 +42,16 @@ namespace Sick::Backend
         return BackendCore::Get().SpawnVehicle(modelName, enterVehicle);
     }
 
+    bool BackendApi::SwitchOnlineSession(OnlineSessionType type)
+    {
+        return BackendCore::Get().SwitchOnlineSession(type);
+    }
+
+    bool BackendApi::SaveCurrentVehicleToPersonalGarage()
+    {
+        return BackendCore::Get().SaveCurrentVehicleToPersonalGarage();
+    }
+
     void BackendApi::SetHandlingEditorActive(bool active) noexcept { BackendCore::Get().SetHandlingEditorActive(active); }
     void BackendApi::SetHandlingValue(Handling::Field field, float value) noexcept { BackendCore::Get().SetHandlingValue(field, value); }
     void BackendApi::RestoreOriginalHandling() noexcept { BackendCore::Get().RestoreOriginalHandling(); }

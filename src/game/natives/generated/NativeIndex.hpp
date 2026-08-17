@@ -39,6 +39,7 @@ namespace Sick::Game::Natives
         SET_VEHICLE_PETROL_TANK_HEALTH,
         GET_ENTITY_COORDS,
         GET_ENTITY_HEADING,
+        GET_ENTITY_MODEL,
         IS_MODEL_IN_CDIMAGE,
         IS_MODEL_A_VEHICLE,
         REQUEST_MODEL,

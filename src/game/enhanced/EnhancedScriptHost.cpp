@@ -388,6 +388,26 @@ namespace Sick::Game::Enhanced
         return Valid(SnapshotBindings()) && Scripts::ScriptRuntime::Get().Ready();
     }
 
+    std::uint64_t* EnhancedScriptHost::LocalAddress(
+        Scripts::ScriptHash script,
+        std::size_t index,
+        std::size_t count) noexcept
+    {
+        if (count == 0)
+            return nullptr;
+
+        const auto bindings = SnapshotBindings();
+        auto* thread = FindThread(bindings, script);
+        if (!thread || !thread->stack)
+            return nullptr;
+
+        const auto stackSize = static_cast<std::size_t>(thread->context.stackSize);
+        if (index >= stackSize || count > stackSize - index)
+            return nullptr;
+
+        return thread->stack + index;
+    }
+
     EnhancedScriptHostError EnhancedScriptHost::LastError() noexcept
     {
         return g_LastError.load(std::memory_order_acquire);
