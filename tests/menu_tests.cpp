@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <iostream>
 #include <string_view>
+#include <utility>
 
 namespace
 {
@@ -102,76 +103,87 @@ namespace
         return true;
     }
 
-    bool TestReferenceMenuAndRenderer()
+    bool TestSickMenuStructureAndRenderer()
     {
-        std::size_t regularActions{};
-        std::size_t toggleCallbacks{};
-        std::size_t numberCallbacks{};
-        std::size_t vectorCallbacks{};
-        bool lastToggle{};
-        int lastNumber{};
-        std::size_t lastVector{};
+        std::size_t godModeCallbacks{};
+        bool lastGodMode{};
 
         Reaper::UI::SickMenuCallbacks callbacks{};
-        callbacks.regularAction = [&regularActions]() { ++regularActions; };
-        callbacks.demoToggle = [&toggleCallbacks, &lastToggle](bool value) {
-            ++toggleCallbacks;
-            lastToggle = value;
-        };
-        callbacks.demoNumber = [&numberCallbacks, &lastNumber](int value) {
-            ++numberCallbacks;
-            lastNumber = value;
-        };
-        callbacks.demoVector = [&vectorCallbacks, &lastVector](std::size_t value) {
-            ++vectorCallbacks;
-            lastVector = value;
+        callbacks.godMode = [&godModeCallbacks, &lastGodMode](bool value) {
+            ++godModeCallbacks;
+            lastGodMode = value;
         };
 
         Reaper::UI::SickMenu menu{std::move(callbacks)};
+        CHECK(menu.RootPage().Title() == "SICK MENU");
+        CHECK(menu.RootPage().Options().size() == 11);
+        CHECK(menu.PlayerPage().Title() == "PLAYER");
+        CHECK(menu.VehiclePage().Title() == "VEHICLE");
+        CHECK(menu.WeaponsPage().Title() == "WEAPONS");
+        CHECK(menu.WorldPage().Title() == "WORLD");
+        CHECK(menu.TeleportPage().Title() == "TELEPORT");
+        CHECK(menu.TunablesPage().Title() == "TUNABLES");
+        CHECK(menu.UnlocksPage().Title() == "UNLOCKS");
+        CHECK(menu.OnlineServicesPage().Title() == "ONLINE SERVICES");
+        CHECK(menu.OnlineVehicleSpawnerPage().Title() == "ONLINE VEHICLE SPAWNER");
+        CHECK(menu.OnlineProtectionPage().Title() == "ONLINE PROTECTION");
+        CHECK(menu.MenuSettingsPage().Title() == "MENU SETTINGS");
+        CHECK(&menu.SelfPage() == &menu.PlayerPage());
+
+        const auto& rootOptions = menu.RootPage().Options();
+        CHECK(rootOptions[0].LabelText() == "Player");
+        CHECK(rootOptions[1].LabelText() == "Vehicle");
+        CHECK(rootOptions[2].LabelText() == "Weapons");
+        CHECK(rootOptions[3].LabelText() == "World");
+        CHECK(rootOptions[4].LabelText() == "Teleport");
+        CHECK(rootOptions[5].LabelText() == "Tunables");
+        CHECK(rootOptions[6].LabelText() == "Unlocks");
+        CHECK(rootOptions[7].LabelText() == "Online Services");
+        CHECK(rootOptions[8].LabelText() == "Online Vehicle Spawner");
+        CHECK(rootOptions[9].LabelText() == "Online Protection");
+        CHECK(rootOptions[10].LabelText() == "Menu Settings");
+
         CHECK(menu.Draw({1920.0F, 1080.0F}).Empty());
-
         menu.Open();
-        CHECK(menu.Controller().SelectedOptionIndex() == 4);
-        const auto counter = menu.Controller().SelectionCounter();
-        CHECK(counter.current == 4);
-        CHECK(counter.total == 7);
+        CHECK(menu.Controller().SelectedOptionIndex() == 0);
+        CHECK(menu.Controller().SelectionCounter().current == 1);
+        CHECK(menu.Controller().SelectionCounter().total == 11);
 
-        const auto drawList = menu.Draw({1920.0F, 1080.0F});
-        CHECK(!drawList.Empty());
-        CHECK(HasText(drawList, "SELF", Sick::Ui::MenuTextAlign::Left));
-        CHECK(HasText(drawList, "4 / 7", Sick::Ui::MenuTextAlign::Right));
-        CHECK(HasText(drawList, "Demo", Sick::Ui::MenuTextAlign::Center));
-        CHECK(HasText(drawList, "Three [ 3 / 3 ]", Sick::Ui::MenuTextAlign::Right));
-        CHECK(CountKind(drawList, Sick::Ui::MenuDrawCommandKind::FilledCircle) == 4);
-        CHECK(CountKind(drawList, Sick::Ui::MenuDrawCommandKind::Line) == 8);
-        CHECK(std::ranges::any_of(drawList.Commands(), [&menu](const auto& command) {
-            return command.kind == Sick::Ui::MenuDrawCommandKind::FilledRect &&
-                command.color == menu.Renderer().Style().selectedColor;
-        }));
+        const auto rootDraw = menu.Draw({1920.0F, 1080.0F});
+        CHECK(!rootDraw.Empty());
+        CHECK(HasText(rootDraw, "SICK MENU", Sick::Ui::MenuTextAlign::Left));
+        CHECK(HasText(rootDraw, "1 / 11", Sick::Ui::MenuTextAlign::Right));
 
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
-        CHECK(regularActions == 1);
+        CHECK(menu.Controller().Depth() == 2);
+        CHECK(menu.Controller().CurrentPage()->Title() == "PLAYER");
+        CHECK(menu.Controller().SelectionCounter().total == 3);
 
-        CHECK(menu.Handle(Reaper::UI::MenuInput::Down));
+        const auto playerDraw = menu.Draw({1920.0F, 1080.0F});
+        CHECK(HasText(playerDraw, "PLAYER", Sick::Ui::MenuTextAlign::Left));
+        CHECK(HasText(playerDraw, "1 / 3", Sick::Ui::MenuTextAlign::Right));
+        CHECK(HasText(playerDraw, "GodMode", Sick::Ui::MenuTextAlign::Left));
+
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
-        CHECK(menu.State().demoToggle);
-        CHECK(toggleCallbacks == 1 && lastToggle);
+        CHECK(menu.State().godMode);
+        CHECK(godModeCallbacks == 1 && lastGodMode);
 
-        CHECK(menu.Handle(Reaper::UI::MenuInput::Down));
-        CHECK(menu.Handle(Reaper::UI::MenuInput::Right));
-        CHECK(menu.State().demoNumber == 2);
-        CHECK(numberCallbacks == 1 && lastNumber == 2);
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
+        CHECK(menu.Controller().Depth() == 1);
+        CHECK(menu.Controller().CurrentPage()->Title() == "SICK MENU");
 
-        CHECK(menu.Handle(Reaper::UI::MenuInput::Down));
-        CHECK(menu.Controller().SelectionCounter().current == 7);
-        CHECK(menu.Handle(Reaper::UI::MenuInput::Right));
-        CHECK(menu.State().demoVector == 0);
-        CHECK(vectorCallbacks == 1 && lastVector == 0);
+        CHECK(menu.Controller().SelectOption(1));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
+        CHECK(menu.Controller().CurrentPage()->Title() == "VEHICLE");
+        CHECK(menu.Controller().SelectionCounter().total == 0);
+        const auto vehicleDraw = menu.Draw({1920.0F, 1080.0F});
+        CHECK(HasText(vehicleDraw, "VEHICLE", Sick::Ui::MenuTextAlign::Left));
+        CHECK(HasText(vehicleDraw, "No options yet", Sick::Ui::MenuTextAlign::Center));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
 
         menu.SetHeaderTexture(0x1234U);
         const auto textured = menu.Draw({1920.0F, 1080.0F});
         CHECK(CountKind(textured, Sick::Ui::MenuDrawCommandKind::Image) == 1);
-        CHECK(CountKind(textured, Sick::Ui::MenuDrawCommandKind::Line) == 4);
 
         menu.Close();
         CHECK(menu.Draw({1920.0F, 1080.0F}).Empty());
@@ -196,7 +208,7 @@ namespace
     bool RunTests()
     {
         return TestNavigationAndSubmenus() &&
-            TestReferenceMenuAndRenderer() &&
+            TestSickMenuStructureAndRenderer() &&
             TestFrontendSynchronization();
     }
 }

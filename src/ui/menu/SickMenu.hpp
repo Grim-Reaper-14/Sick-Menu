@@ -55,12 +55,51 @@ namespace Sick::Ui
         [[nodiscard]] const MenuController& Controller() const noexcept;
         [[nodiscard]] MenuRenderer& Renderer() noexcept;
         [[nodiscard]] const MenuRenderer& Renderer() const noexcept;
+
+        [[nodiscard]] MenuPage& RootPage() noexcept;
+        [[nodiscard]] const MenuPage& RootPage() const noexcept;
+        [[nodiscard]] MenuPage& PlayerPage() noexcept;
+        [[nodiscard]] const MenuPage& PlayerPage() const noexcept;
+        [[nodiscard]] MenuPage& VehiclePage() noexcept;
+        [[nodiscard]] const MenuPage& VehiclePage() const noexcept;
+        [[nodiscard]] MenuPage& WeaponsPage() noexcept;
+        [[nodiscard]] const MenuPage& WeaponsPage() const noexcept;
+        [[nodiscard]] MenuPage& WorldPage() noexcept;
+        [[nodiscard]] const MenuPage& WorldPage() const noexcept;
+        [[nodiscard]] MenuPage& TeleportPage() noexcept;
+        [[nodiscard]] const MenuPage& TeleportPage() const noexcept;
+        [[nodiscard]] MenuPage& TunablesPage() noexcept;
+        [[nodiscard]] const MenuPage& TunablesPage() const noexcept;
+        [[nodiscard]] MenuPage& UnlocksPage() noexcept;
+        [[nodiscard]] const MenuPage& UnlocksPage() const noexcept;
+        [[nodiscard]] MenuPage& OnlineServicesPage() noexcept;
+        [[nodiscard]] const MenuPage& OnlineServicesPage() const noexcept;
+        [[nodiscard]] MenuPage& OnlineVehicleSpawnerPage() noexcept;
+        [[nodiscard]] const MenuPage& OnlineVehicleSpawnerPage() const noexcept;
+        [[nodiscard]] MenuPage& OnlineProtectionPage() noexcept;
+        [[nodiscard]] const MenuPage& OnlineProtectionPage() const noexcept;
+        [[nodiscard]] MenuPage& MenuSettingsPage() noexcept;
+        [[nodiscard]] const MenuPage& MenuSettingsPage() const noexcept;
+
+        // Compatibility alias retained for code written before the dedicated
+        // menu hierarchy. SelfPage is now the Player page.
         [[nodiscard]] MenuPage& SelfPage() noexcept;
         [[nodiscard]] const MenuPage& SelfPage() const noexcept;
 
     private:
         SickMenuState m_State;
-        MenuPage m_SelfPage{"SELF"};
+        MenuPage m_RootPage{"SICK MENU"};
+        MenuPage m_PlayerPage{"PLAYER"};
+        MenuPage m_VehiclePage{"VEHICLE"};
+        MenuPage m_WeaponsPage{"WEAPONS"};
+        MenuPage m_WorldPage{"WORLD"};
+        MenuPage m_TeleportPage{"TELEPORT"};
+        MenuPage m_TunablesPage{"TUNABLES"};
+        MenuPage m_UnlocksPage{"UNLOCKS"};
+        MenuPage m_OnlineServicesPage{"ONLINE SERVICES"};
+        MenuPage m_OnlineVehicleSpawnerPage{"ONLINE VEHICLE SPAWNER"};
+        MenuPage m_OnlineProtectionPage{"ONLINE PROTECTION"};
+        MenuPage m_MenuSettingsPage{"MENU SETTINGS"};
         MenuController m_Controller;
         MenuRenderer m_Renderer;
         MenuTexture m_HeaderTexture{};
