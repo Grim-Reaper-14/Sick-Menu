@@ -3,6 +3,7 @@
 #include "MenuRenderer.hpp"
 #include "shared/HandlingTypes.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -83,6 +84,29 @@ namespace Sick::Ui
         bool vehicleEngineAlwaysOn{};
         bool vehicleNoGravity{};
         bool vehicleNoCollision{};
+        std::array<int, 50> vehicleMods{};
+        std::size_t vehicleWheelType{};
+        std::size_t vehiclePrimaryPaintType{1};
+        std::size_t vehicleSecondaryPaintType{1};
+        int vehiclePrimaryColor{};
+        int vehicleSecondaryColor{};
+        int vehiclePearlescentColor{};
+        int vehicleWheelColor{};
+        int vehicleInteriorColor{};
+        int vehicleDashboardColor{};
+        bool vehicleTurbo{};
+        bool vehicleXenon{};
+        std::size_t vehicleXenonColor{};
+        bool vehicleTireSmoke{};
+        bool vehicleBulletproofTires{true};
+        std::array<bool, 4> vehicleNeonEnabled{};
+        int vehicleNeonRed{255};
+        int vehicleNeonGreen{};
+        int vehicleNeonBlue{255};
+        int vehicleSmokeRed{255};
+        int vehicleSmokeGreen{255};
+        int vehicleSmokeBlue{255};
+        std::array<bool, 14> vehicleExtras{};
         bool vehicleSpawnerEnterVehicle{true};
         bool vehicleSpawnerBusy{};
         std::string vehicleSpawnerStatus{"READY"};
@@ -136,6 +160,7 @@ namespace Sick::Ui
         std::function<void()> repairVehicle;
         std::function<void()> cleanVehicle;
         std::function<void()> putVehicleOnGround;
+        std::function<void(std::int32_t, int, int, int, int)> customizeVehicle;
         std::function<void(std::string_view, bool)> spawnVehicle;
         std::function<void(std::int32_t)> switchOnlineSession;
         std::function<void()> saveCurrentVehicleToPersonalGarage;
@@ -228,6 +253,7 @@ namespace Sick::Ui
         [[nodiscard]] const MenuPage& SelfPage() const noexcept;
 
     private:
+        void BuildVehicleCustomizationPages();
         void BuildVehicleSpawnerPages();
         void BuildHandlingPages();
         void RebuildHandlingProfiles();
@@ -250,6 +276,12 @@ namespace Sick::Ui
         MenuPage m_RootPage{"SICK MENU"};
         MenuPage m_PlayerPage{"PLAYER"};
         MenuPage m_VehiclePage{"VEHICLE"};
+        MenuPage m_VehicleCustomizationPage{"VEHICLE / CUSTOMIZATION"};
+        MenuPage m_VehicleModsPage{"CUSTOMIZATION / MODS"};
+        MenuPage m_VehicleWheelsPage{"CUSTOMIZATION / WHEELS"};
+        MenuPage m_VehiclePaintPage{"CUSTOMIZATION / PAINT"};
+        MenuPage m_VehicleLightsPage{"CUSTOMIZATION / LIGHTS & NEON"};
+        MenuPage m_VehicleExtrasPage{"CUSTOMIZATION / EXTRAS"};
         MenuPage m_HandlingPage{"HANDLING"};
         MenuPage m_HandlingGeneralPage{"HANDLING / GENERAL"};
         MenuPage m_HandlingTransmissionPage{"HANDLING / TRANSMISSION"};

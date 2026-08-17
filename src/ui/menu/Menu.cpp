@@ -117,8 +117,7 @@ namespace Sick::Ui
         };
         option.m_ValueText = [&index, sharedValues]() {
             if (sharedValues->empty()) return std::string{};
-            return (*sharedValues)[index] + " [ " + std::to_string(index + 1) +
-                " / " + std::to_string(sharedValues->size()) + " ]";
+            return (*sharedValues)[index];
         };
         option.m_Enabled = [sharedValues]() { return !sharedValues->empty(); };
         return option;

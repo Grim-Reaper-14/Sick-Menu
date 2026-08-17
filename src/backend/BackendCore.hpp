@@ -54,6 +54,12 @@ namespace Sick::Backend
         void RepairVehicle() noexcept;
         void CleanVehicle() noexcept;
         void PutVehicleOnGround() noexcept;
+        [[nodiscard]] bool CustomizeCurrentVehicle(
+            VehicleCustomizationCommand command,
+            int a = 0,
+            int b = 0,
+            int c = 0,
+            int d = 0);
         [[nodiscard]] bool SpawnVehicle(std::string_view modelName, bool enterVehicle);
         [[nodiscard]] bool SwitchOnlineSession(OnlineSessionType type);
         [[nodiscard]] bool SaveCurrentVehicleToPersonalGarage();

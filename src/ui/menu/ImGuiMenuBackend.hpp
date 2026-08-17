@@ -23,6 +23,7 @@ namespace Sick::Ui
         ImGuiKey right{ImGuiKey_Keypad6};
         ImGuiKey select{ImGuiKey_Keypad5};
         ImGuiKey back{ImGuiKey_Keypad0};
+        ImGuiKey backAlternate{ImGuiKey_Insert};
     };
 
     class ImGuiMenuBackend final
@@ -46,7 +47,9 @@ namespace Sick::Ui
                 controller.Handle(MenuInput::Right);
             if (ImGui::IsKeyPressed(keys.select, false))
                 controller.Handle(MenuInput::Select);
-            if (ImGui::IsKeyPressed(keys.back, false))
+            const bool backPressed = ImGui::IsKeyPressed(keys.back, false) ||
+                (keys.back == ImGuiKey_Keypad0 && ImGui::IsKeyPressed(keys.backAlternate, false));
+            if (backPressed)
                 controller.Handle(MenuInput::Back);
         }
 
@@ -68,7 +71,9 @@ namespace Sick::Ui
                 menu.Handle(MenuInput::Right);
             if (ImGui::IsKeyPressed(keys.select, false))
                 menu.Handle(MenuInput::Select);
-            if (ImGui::IsKeyPressed(keys.back, false))
+            const bool backPressed = ImGui::IsKeyPressed(keys.back, false) ||
+                (keys.back == ImGuiKey_Keypad0 && ImGui::IsKeyPressed(keys.backAlternate, false));
+            if (backPressed)
                 menu.Handle(MenuInput::Back);
         }
 

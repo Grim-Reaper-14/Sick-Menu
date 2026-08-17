@@ -73,6 +73,24 @@ namespace Sick::Backend
             reward[5] = 0;
             reward[6] = 0;
         }
+
+        constexpr Sick::Game::Natives::NativeHash SetVehicleModKitHash = 0xB5AD06DDA85E2E8FULL;
+        constexpr Sick::Game::Natives::NativeHash GetNumVehicleModsHash = 0x5B59C12A02157D00ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleModHash = 0x8450270DC5896D39ULL;
+        constexpr Sick::Game::Natives::NativeHash ToggleVehicleModHash = 0xF5501FF9869DAC7CULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleWheelTypeHash = 0xE33678A9AE50A01BULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleModColor1Hash = 0xA5277ECCD081FCC1ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleModColor2Hash = 0x941B1F179D6AE19AULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleExtraColoursHash = 0xBB361D7264AC4FD8ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleInteriorColorHash = 0xC0C8E6AAA00F1A58ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleDashboardColorHash = 0x77B012A683295B6EULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleNeonEnabledHash = 0xE62930EC6FAABCA5ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleNeonColourHash = 0xEAB8A43F6621850FULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleTireSmokeColorHash = 0x5DA0536AEAD1FF31ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleXenonColorHash = 0x89D1FDCA3735A1E0ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleExtraHash = 0xD772F6AA66750D2BULL;
+        constexpr Sick::Game::Natives::NativeHash DoesExtraExistHash = 0x579FA5568DE0C2A0ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleTyresCanBurstHash = 0x439C904840715871ULL;
     }
 
     BackendCore& BackendCore::Get() noexcept
@@ -195,6 +213,134 @@ namespace Sick::Backend
     void BackendCore::RepairVehicle() noexcept { m_Features.RepairVehicle(); }
     void BackendCore::CleanVehicle() noexcept { m_Features.CleanVehicle(); }
     void BackendCore::PutVehicleOnGround() noexcept { m_Features.PutVehicleOnGround(); }
+
+    bool BackendCore::CustomizeCurrentVehicle(
+        VehicleCustomizationCommand command,
+        int a,
+        int b,
+        int c,
+        int d)
+    {
+        if (!m_NativeReady.load(std::memory_order_acquire))
+            return false;
+
+        return QueueNative([command, a, b, c, d] {
+            const auto ped = Game::Natives::PLAYER::PLAYER_PED_ID();
+            const auto vehicle = Game::Natives::PED::GET_VEHICLE_PED_IS_IN(ped, false);
+            if (vehicle == 0 || !Game::Natives::ENTITY::DOES_ENTITY_EXIST(vehicle))
+                return;
+
+            using Invoker = Game::Natives::NativeInvoker;
+            static_cast<void>(Invoker::TryCallVoid(SetVehicleModKitHash, vehicle, 0));
+
+            switch (command)
+            {
+            case VehicleCustomizationCommand::SetMod:
+            {
+                const int slot = std::clamp(a, 0, 49);
+                const auto count = Invoker::TryCall<int>(GetNumVehicleModsHash, vehicle, slot);
+                if (!count || *count <= 0)
+                {
+                    static_cast<void>(Invoker::TryCallVoid(SetVehicleModHash, vehicle, slot, -1, false));
+                    return;
+                }
+                const int index = std::clamp(b, -1, *count - 1);
+                static_cast<void>(Invoker::TryCallVoid(SetVehicleModHash, vehicle, slot, index, c != 0));
+                return;
+            }
+            case VehicleCustomizationCommand::ToggleMod:
+                static_cast<void>(Invoker::TryCallVoid(
+                    ToggleVehicleModHash,
+                    vehicle,
+                    std::clamp(a, 0, 49),
+                    b != 0));
+                return;
+            case VehicleCustomizationCommand::SetWheelType:
+                static_cast<void>(Invoker::TryCallVoid(SetVehicleWheelTypeHash, vehicle, std::clamp(a, 0, 12)));
+                return;
+            case VehicleCustomizationCommand::SetPrimaryModColor:
+                static_cast<void>(Invoker::TryCallVoid(
+                    SetVehicleModColor1Hash,
+                    vehicle,
+                    std::clamp(a, 0, 5),
+                    std::clamp(b, 0, 160),
+                    0));
+                return;
+            case VehicleCustomizationCommand::SetSecondaryModColor:
+                static_cast<void>(Invoker::TryCallVoid(
+                    SetVehicleModColor2Hash,
+                    vehicle,
+                    std::clamp(a, 0, 5),
+                    std::clamp(b, 0, 160)));
+                return;
+            case VehicleCustomizationCommand::SetExtraColours:
+                static_cast<void>(Invoker::TryCallVoid(
+                    SetVehicleExtraColoursHash,
+                    vehicle,
+                    std::clamp(a, 0, 160),
+                    std::clamp(b, 0, 160)));
+                return;
+            case VehicleCustomizationCommand::SetInteriorColor:
+                static_cast<void>(Invoker::TryCallVoid(SetVehicleInteriorColorHash, vehicle, std::clamp(a, 0, 160)));
+                return;
+            case VehicleCustomizationCommand::SetDashboardColor:
+                static_cast<void>(Invoker::TryCallVoid(SetVehicleDashboardColorHash, vehicle, std::clamp(a, 0, 160)));
+                return;
+            case VehicleCustomizationCommand::SetNeonEnabled:
+                static_cast<void>(Invoker::TryCallVoid(
+                    SetVehicleNeonEnabledHash,
+                    vehicle,
+                    std::clamp(a, 0, 3),
+                    b != 0));
+                return;
+            case VehicleCustomizationCommand::SetNeonColor:
+                static_cast<void>(Invoker::TryCallVoid(
+                    SetVehicleNeonColourHash,
+                    vehicle,
+                    std::clamp(a, 0, 255),
+                    std::clamp(b, 0, 255),
+                    std::clamp(c, 0, 255)));
+                return;
+            case VehicleCustomizationCommand::SetTireSmokeColor:
+                static_cast<void>(Invoker::TryCallVoid(ToggleVehicleModHash, vehicle, 20, true));
+                static_cast<void>(Invoker::TryCallVoid(
+                    SetVehicleTireSmokeColorHash,
+                    vehicle,
+                    std::clamp(a, 0, 255),
+                    std::clamp(b, 0, 255),
+                    std::clamp(c, 0, 255)));
+                return;
+            case VehicleCustomizationCommand::SetXenonColor:
+                static_cast<void>(Invoker::TryCallVoid(ToggleVehicleModHash, vehicle, 22, true));
+                static_cast<void>(Invoker::TryCallVoid(SetVehicleXenonColorHash, vehicle, std::clamp(a, -1, 12)));
+                return;
+            case VehicleCustomizationCommand::SetExtra:
+            {
+                const int extra = std::clamp(a, 1, 14);
+                const auto exists = Invoker::TryCall<bool>(DoesExtraExistHash, vehicle, extra);
+                if (exists && *exists)
+                    static_cast<void>(Invoker::TryCallVoid(SetVehicleExtraHash, vehicle, extra, b == 0));
+                return;
+            }
+            case VehicleCustomizationCommand::SetBulletproofTires:
+                static_cast<void>(Invoker::TryCallVoid(SetVehicleTyresCanBurstHash, vehicle, a == 0));
+                return;
+            case VehicleCustomizationCommand::MaxVehicle:
+                for (int slot = 0; slot < 50; ++slot)
+                {
+                    if (slot == 17 || slot == 18 || slot == 19 || slot == 20 || slot == 21 || slot == 22)
+                        continue;
+                    const auto count = Invoker::TryCall<int>(GetNumVehicleModsHash, vehicle, slot);
+                    if (count && *count > 0)
+                        static_cast<void>(Invoker::TryCallVoid(SetVehicleModHash, vehicle, slot, *count - 1, false));
+                }
+                static_cast<void>(Invoker::TryCallVoid(ToggleVehicleModHash, vehicle, 18, true));
+                static_cast<void>(Invoker::TryCallVoid(ToggleVehicleModHash, vehicle, 22, true));
+                static_cast<void>(Invoker::TryCallVoid(SetVehicleTyresCanBurstHash, vehicle, false));
+                return;
+            }
+        });
+    }
 
     bool BackendCore::SpawnVehicle(std::string_view modelName, bool enterVehicle)
     {

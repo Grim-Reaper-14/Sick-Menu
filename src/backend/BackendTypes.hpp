@@ -76,6 +76,25 @@ namespace Sick::Backend
         LeaveOnline = -1,
     };
 
+    enum class VehicleCustomizationCommand : std::int32_t
+    {
+        SetMod = 0,
+        ToggleMod = 1,
+        SetWheelType = 2,
+        SetPrimaryModColor = 3,
+        SetSecondaryModColor = 4,
+        SetExtraColours = 5,
+        SetInteriorColor = 6,
+        SetDashboardColor = 7,
+        SetNeonEnabled = 8,
+        SetNeonColor = 9,
+        SetTireSmokeColor = 10,
+        SetXenonColor = 11,
+        SetExtra = 12,
+        SetBulletproofTires = 13,
+        MaxVehicle = 14,
+    };
+
     enum class SessionSwitchState : std::uint8_t
     {
         Idle,

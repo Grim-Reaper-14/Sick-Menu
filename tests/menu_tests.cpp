@@ -143,7 +143,7 @@ namespace
         CHECK(playerOptions[14].LabelText() == "Graceful Landing");
 
         const auto& vehicleOptions = menu.VehiclePage().Options();
-        CHECK(vehicleOptions.size() == 10);
+        CHECK(vehicleOptions.size() == 11);
         CHECK(vehicleOptions[0].LabelText() == "Vehicle God Mode");
         CHECK(vehicleOptions[1].LabelText() == "Auto Repair");
         CHECK(vehicleOptions[2].LabelText() == "Keep Vehicle Clean");
@@ -151,9 +151,10 @@ namespace
         CHECK(vehicleOptions[4].LabelText() == "No Gravity");
         CHECK(vehicleOptions[5].LabelText() == "No Collision");
         CHECK(vehicleOptions[6].LabelText() == "Handling");
-        CHECK(vehicleOptions[7].LabelText() == "Repair Vehicle");
-        CHECK(vehicleOptions[8].LabelText() == "Clean Vehicle");
-        CHECK(vehicleOptions[9].LabelText() == "Put On Ground");
+        CHECK(vehicleOptions[7].LabelText() == "Customization");
+        CHECK(vehicleOptions[8].LabelText() == "Repair Vehicle");
+        CHECK(vehicleOptions[9].LabelText() == "Clean Vehicle");
+        CHECK(vehicleOptions[10].LabelText() == "Put On Ground");
 
         CHECK(menu.Draw({1920.0F, 1080.0F}).Empty());
         menu.Open();
@@ -190,13 +191,18 @@ namespace
         CHECK(menu.Controller().SelectOption(1));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
         CHECK(menu.Controller().CurrentPage()->Title() == "VEHICLE");
-        CHECK(menu.Controller().SelectionCounter().total == 10);
+        CHECK(menu.Controller().SelectionCounter().total == 11);
         const auto vehicleDraw = menu.Draw({1920.0F, 1080.0F});
         CHECK(HasText(vehicleDraw, "Keeps the vehicle you are using invincible while enabled.", Sick::Ui::MenuTextAlign::Left));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
         CHECK(menu.State().vehicleGodMode);
         CHECK(vehicleGodCallbacks == 1 && lastVehicleGod);
         CHECK(menu.Controller().SelectOption(7));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
+        CHECK(menu.Controller().CurrentPage()->Title() == "VEHICLE / CUSTOMIZATION");
+        CHECK(menu.Controller().SelectionCounter().total == 6);
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
+        CHECK(menu.Controller().SelectOption(8));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
         CHECK(repairCallbacks == 1);
 

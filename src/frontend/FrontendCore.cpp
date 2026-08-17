@@ -141,6 +141,10 @@ namespace
         callbacks.repairVehicle = [] { Sick::Backend::BackendApi::Get().RepairVehicle(); };
         callbacks.cleanVehicle = [] { Sick::Backend::BackendApi::Get().CleanVehicle(); };
         callbacks.putVehicleOnGround = [] { Sick::Backend::BackendApi::Get().PutVehicleOnGround(); };
+        callbacks.customizeVehicle = [](std::int32_t command, int a, int b, int c, int d) {
+            static_cast<void>(Sick::Backend::BackendApi::Get().CustomizeCurrentVehicle(
+                static_cast<Sick::Backend::VehicleCustomizationCommand>(command), a, b, c, d));
+        };
         callbacks.spawnVehicle = [](std::string_view modelName, bool enterVehicle) {
             static_cast<void>(Sick::Backend::BackendApi::Get().SpawnVehicle(modelName, enterVehicle));
         };

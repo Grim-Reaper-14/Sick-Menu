@@ -37,6 +37,15 @@ namespace Sick::Backend
     void BackendApi::RepairVehicle() noexcept { BackendCore::Get().RepairVehicle(); }
     void BackendApi::CleanVehicle() noexcept { BackendCore::Get().CleanVehicle(); }
     void BackendApi::PutVehicleOnGround() noexcept { BackendCore::Get().PutVehicleOnGround(); }
+    bool BackendApi::CustomizeCurrentVehicle(
+        VehicleCustomizationCommand command,
+        int a,
+        int b,
+        int c,
+        int d)
+    {
+        return BackendCore::Get().CustomizeCurrentVehicle(command, a, b, c, d);
+    }
     bool BackendApi::SpawnVehicle(std::string_view modelName, bool enterVehicle)
     {
         return BackendCore::Get().SpawnVehicle(modelName, enterVehicle);
