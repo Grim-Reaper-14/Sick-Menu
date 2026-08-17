@@ -1,4 +1,5 @@
 #include "Reaper.hpp"
+#include "game/natives/generated/EnhancedNativeHashes.hpp"
 
 #include <array>
 #include <cassert>
@@ -71,16 +72,30 @@ namespace
 
 int main()
 {
+    using namespace Sick::Game;
+    using namespace Sick::Game::Natives;
+    namespace Generated = Sick::Game::Natives::Generated;
+
+    static_assert(Generated::EnhancedNativeHashes.size() == NativeCount);
+    for (const auto hash : Generated::EnhancedNativeHashes)
+        assert(hash != 0);
+    assert(Generated::EnhancedHashFor(NativeIndex::PLAYER_PED_ID) == 0x4A8C381C258A124DULL);
+    assert(Generated::EnhancedHashFor(NativeIndex::SET_SUPER_JUMP_THIS_FRAME) == 0x353BF8D85390AA39ULL);
+    assert(Generated::EnhancedHashFor(NativeIndex::SET_VEHICLE_ENGINE_ON) == 0xC229299217554C78ULL);
+    assert(Generated::EnhancedHashFor(NativeIndex::REQUEST_MODEL) == 0xEC9DAA34BBB4658CULL);
+    assert(Generated::EnhancedHashFor(NativeIndex::CREATE_VEHICLE) == 0x5779387E956077A6ULL);
+    assert(Generated::EnhancedHashFor(NativeIndex::SET_PED_INTO_VEHICLE) == 0x73CAFD2038E812B3ULL);
+
     g_ProviderCalls = 0;
     assert(!Reaper::Enhanced::Game::InitializeIndexed(9001, &ProvidePartialNative));
     assert(!Reaper::Enhanced::Game::Ready());
-    assert(g_ProviderCalls == static_cast<int>(Sick::Game::Natives::NativeCount));
+    assert(g_ProviderCalls == static_cast<int>(NativeCount));
 
     g_ProviderCalls = 0;
     assert(Reaper::Enhanced::Game::InitializeIndexed(9001, &ProvideCompleteNative));
     assert(Reaper::Enhanced::Game::Ready());
-    assert(g_ProviderCalls == static_cast<int>(Sick::Game::Natives::NativeCount));
-    assert(Reaper::Native::HandlerTable::Get().ResolvedCount() == Sick::Game::Natives::NativeCount);
+    assert(g_ProviderCalls == static_cast<int>(NativeCount));
+    assert(Reaper::Native::HandlerTable::Get().ResolvedCount() == NativeCount);
 
     const Reaper::Ped ped = Reaper::PLAYER::PLAYER_PED_ID();
     assert(ped == 321);
@@ -93,7 +108,7 @@ int main()
 
     const auto rawPed = Reaper::Native::Invoker::Call<Reaper::Ped>(Reaper::Native::Hashes::PLAYER_PED_ID);
     assert(rawPed == 321);
-    assert(g_ProviderCalls == static_cast<int>(Sick::Game::Natives::NativeCount));
+    assert(g_ProviderCalls == static_cast<int>(NativeCount));
 
     Reaper::Enhanced::Game::BindScriptGlobalResolver(&ResolveGlobal);
     Reaper::ScriptGlobal root{10};

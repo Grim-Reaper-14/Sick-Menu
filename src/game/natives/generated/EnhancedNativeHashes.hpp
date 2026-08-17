@@ -1,0 +1,64 @@
+#pragma once
+
+#include "../NativeTypes.hpp"
+#include "NativeIndex.hpp"
+
+#include <array>
+
+namespace Sick::Game::Natives::Generated
+{
+    // GTA V Enhanced (Gen9) native hashes translated from the canonical hashes.
+    // Mapping values were validated against YimMenuV2 enhanced/src/game/gta/invoker/crossmap.txt.
+    // Keep this array in NativeIndex order so the runtime can
+    // hand the translated values to InitNativeTables and cache the handlers by
+    // the stable Sick-Menu index.
+    inline constexpr std::array<NativeHash, NativeCount> EnhancedNativeHashes{
+        0x4A8C381C258A124DULL, // PLAYER_PED_ID
+        0x259BE71D8A81D4FAULL, // PLAYER_ID
+        0xFC8BFE4B41177C22ULL, // DOES_ENTITY_EXIST
+        0x935364B4448CD584ULL, // SET_ENTITY_INVINCIBLE
+        0xE7B45027762DEFE7ULL, // GET_PLAYER_WANTED_LEVEL
+        0xE20A252886E4FE1DULL, // SET_PLAYER_WANTED_LEVEL
+        0x42C9A22D6724F283ULL, // SET_PLAYER_WANTED_LEVEL_NOW
+        0x3C482AC51A8E85DCULL, // CLEAR_PLAYER_WANTED_LEVEL
+        0x353BF8D85390AA39ULL, // SET_SUPER_JUMP_THIS_FRAME
+        0xA52E1AE3848A506BULL, // SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER
+        0x289497A4BA9049E0ULL, // SET_SWIM_MULTIPLIER_FOR_PLAYER
+        0x0ACCC8916441860AULL, // SET_PED_MAX_TIME_UNDERWATER
+        0x9FF00EA9A61211D2ULL, // SET_PED_CAN_RAGDOLL
+        0x0428AFDCAA63B06EULL, // SET_PED_CONFIG_FLAG
+        0xD81F5EA29FD2682EULL, // CLEAR_PED_ENV_DIRT
+        0x69AE13B08EFD8497ULL, // RESET_PED_VISIBLE_DAMAGE
+        0x8EA9C5E0178372E1ULL, // CLEAR_PED_BLOOD_DAMAGE
+        0x61BBBE1B9F8AC7D0ULL, // SET_ENABLE_SCUBA
+        0x34A9A872D3C510BFULL, // SET_PED_DIES_IN_WATER
+        0xBF861D73D95BF415ULL, // SET_ENTITY_HAS_GRAVITY
+        0x6EF03BE64E058E2FULL, // GET_VEHICLE_PED_IS_IN
+        0x44C48AC14D3C09EDULL, // SET_ENTITY_COLLISION
+        0xF698038C13845696ULL, // SET_VEHICLE_FIXED
+        0x1D1124C855316790ULL, // SET_VEHICLE_DEFORMATION_FIXED
+        0x9452FE4900245259ULL, // SET_VEHICLE_DIRT_LEVEL
+        0xC229299217554C78ULL, // SET_VEHICLE_ENGINE_ON
+        0x1DE99C193C7EC64BULL, // SET_VEHICLE_ON_GROUND_PROPERLY
+        0x2AEBE39F6BF7D6BCULL, // SET_VEHICLE_ENGINE_HEALTH
+        0x3E7E7AD923FD91A7ULL, // SET_VEHICLE_BODY_HEALTH
+        0xDF9DC0584881B7AFULL, // SET_VEHICLE_PETROL_TANK_HEALTH
+        0xD1A6A821F5AC81DBULL, // GET_ENTITY_COORDS
+        0xCFC0C995455A6204ULL, // GET_ENTITY_HEADING
+        0xE7D342E0F16AAA8FULL, // IS_MODEL_IN_CDIMAGE
+        0xAD1840C2E6AF7D5EULL, // IS_MODEL_A_VEHICLE
+        0xEC9DAA34BBB4658CULL, // REQUEST_MODEL
+        0x6252BC0DD8A320DBULL, // HAS_MODEL_LOADED
+        0x55098D9E9AD58806ULL, // SET_MODEL_AS_NO_LONGER_NEEDED
+        0x5779387E956077A6ULL, // CREATE_VEHICLE
+        0x73CAFD2038E812B3ULL, // SET_PED_INTO_VEHICLE
+    };
+
+    static_assert(EnhancedNativeHashes.size() == NativeCount);
+
+    [[nodiscard]] constexpr NativeHash EnhancedHashFor(NativeIndex index) noexcept
+    {
+        const auto offset = ToNativeOffset(index);
+        return offset < EnhancedNativeHashes.size() ? EnhancedNativeHashes[offset] : NativeHash{};
+    }
+}

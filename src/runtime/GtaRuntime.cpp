@@ -5,8 +5,11 @@
 #include "backend/BackendApi.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/enhanced/EnhancedScriptHost.hpp"
+#include "game/enhanced/ScriptGlobal.hpp"
 #include "game/natives/NativeContext.hpp"
+#include "game/natives/generated/EnhancedNativeHashes.hpp"
 #include "game/natives/generated/NativeHashes.hpp"
+#include "game/scripts/ScriptTypes.hpp"
 
 #include <MinHook.h>
 #include <array>
@@ -17,17 +20,34 @@
 #include <string>
 #include <thread>
 
+#if defined(_MSC_VER) && defined(_M_X64)
+#include <intrin.h>
+#endif
+
 namespace
 {
     using NativeHandler = Sick::Game::Natives::NativeHandler;
+    using LiveScriptThread = Sick::Game::Enhanced::LiveScriptThread;
+    using LiveScriptThreadArray = Sick::Game::Enhanced::LiveScriptThreadArray;
+    using LiveScriptTlsContext = Sick::Game::Enhanced::LiveScriptTlsContext;
 
     constexpr std::wstring_view GameExecutable = L"GTA5_Enhanced.exe";
     constexpr Sick::Game::Enhanced::BuildId ReferenceEnhancedBuild = 115813;
+    constexpr std::size_t GlobalPageShift = 18;
+    constexpr std::size_t GlobalPageSize = std::size_t{1} << GlobalPageShift;
+    constexpr std::size_t GlobalPageCount = 64;
+    constexpr std::size_t GlobalCapacity = GlobalPageSize * GlobalPageCount;
+    constexpr auto FreemodeScript = Sick::Game::Scripts::Joaat("freemode");
+    constexpr auto MainPersistentScript = Sick::Game::Scripts::Joaat("main_persistent");
+    constexpr auto StartupScript = Sick::Game::Scripts::Joaat("startup");
 
     std::array<NativeHandler, Sick::Game::Natives::NativeCount> g_RuntimeNativeHandlers{};
+    LiveScriptThreadArray* g_RuntimeScriptThreads{};
+    std::int64_t** g_RuntimeScriptGlobals{};
 
     static_assert(offsetof(Sick::Game::Enhanced::LiveScriptProgram, nativeCount) == 0x2C);
     static_assert(offsetof(Sick::Game::Enhanced::LiveScriptProgram, nativeEntrypoints) == 0x40);
+    static_assert(offsetof(Sick::Game::Enhanced::LiveScriptTlsContext, currentScriptThread) == 0x7A0);
 
     NativeHandler ResolveRuntimeNative(
         Sick::Game::NativeHash hash,
@@ -37,6 +57,85 @@ namespace
         const auto offset = Sick::Game::Natives::ToNativeOffset(index);
         return offset < g_RuntimeNativeHandlers.size() ? g_RuntimeNativeHandlers[offset] : nullptr;
     }
+
+    void* ResolveRuntimeScriptGlobal(std::size_t index) noexcept
+    {
+        if (!g_RuntimeScriptGlobals || index >= GlobalCapacity)
+            return nullptr;
+
+        const auto page = index >> GlobalPageShift;
+        const auto offset = index & (GlobalPageSize - 1);
+        auto* pageAddress = g_RuntimeScriptGlobals[page];
+        return pageAddress ? static_cast<void*>(pageAddress + offset) : nullptr;
+    }
+
+    [[nodiscard]] LiveScriptThread* FindScriptThread(std::uint32_t scriptHash) noexcept
+    {
+        if (!g_RuntimeScriptThreads || !g_RuntimeScriptThreads->data)
+            return nullptr;
+
+        const auto size = g_RuntimeScriptThreads->size;
+        const auto capacity = g_RuntimeScriptThreads->capacity;
+        if (size == 0 || size > capacity || capacity > 4096)
+            return nullptr;
+
+        for (std::uint16_t index = 0; index < size; ++index)
+        {
+            auto* thread = g_RuntimeScriptThreads->data[index];
+            if (thread && thread->context.threadId != 0 && thread->scriptHash == scriptHash)
+                return thread;
+        }
+
+        return nullptr;
+    }
+
+    [[nodiscard]] LiveScriptThread* FindPreferredScriptThread() noexcept
+    {
+        if (auto* thread = FindScriptThread(FreemodeScript))
+            return thread;
+        if (auto* thread = FindScriptThread(MainPersistentScript))
+            return thread;
+        return FindScriptThread(StartupScript);
+    }
+
+    [[nodiscard]] LiveScriptTlsContext* ResolveRuntimeTls() noexcept
+    {
+#if defined(_MSC_VER) && defined(_M_X64)
+        const auto tlsStorage = static_cast<std::uintptr_t>(__readgsqword(0x58));
+        if (tlsStorage == 0)
+            return nullptr;
+        return *reinterpret_cast<LiveScriptTlsContext**>(tlsStorage);
+#else
+        return nullptr;
+#endif
+    }
+
+    class RuntimeScriptScope final
+    {
+    public:
+        RuntimeScriptScope(LiveScriptTlsContext& tls, LiveScriptThread& thread) noexcept :
+            m_Tls(tls),
+            m_OriginalThread(tls.currentScriptThread),
+            m_OriginalActive(tls.scriptThreadActive)
+        {
+            m_Tls.currentScriptThread = &thread;
+            m_Tls.scriptThreadActive = true;
+        }
+
+        ~RuntimeScriptScope()
+        {
+            m_Tls.scriptThreadActive = m_OriginalActive;
+            m_Tls.currentScriptThread = m_OriginalThread;
+        }
+
+        RuntimeScriptScope(const RuntimeScriptScope&) = delete;
+        RuntimeScriptScope& operator=(const RuntimeScriptScope&) = delete;
+
+    private:
+        LiveScriptTlsContext& m_Tls;
+        LiveScriptThread* m_OriginalThread{};
+        bool m_OriginalActive{};
+    };
 
     [[nodiscard]] bool IsExecutableAddress(const void* address) noexcept
     {
@@ -122,6 +221,8 @@ namespace Sick::Runtime
         const auto swapMatch = FindUnique(*image, "72 C7 EB 02 31 C0 8B 0D");
         const auto runMatch = FindUnique(*image, "BE 40 5D C6 00");
         const auto nativeMatch = FindUnique(*image, "EB 2A 0F 1F 40 00 48 8B 54 17 10");
+        const auto threadsMatch = FindUnique(*image, "48 8B 05 ? ? ? ? 48 89 34 F8 48 FF C7 48 39 FB 75 97");
+        const auto globalsMatch = FindUnique(*image, "48 8B 8E B8 00 00 00 48 8D 15 ? ? ? ? 49 89 D8");
         if (!swapMatch || !runMatch || *runMatch < image->base + 0xA)
             return false;
         const auto queueAddress = Rip(*image, *swapMatch + 0x1D);
@@ -135,21 +236,46 @@ namespace Sick::Runtime
         m_InitNativeTablesAddress = nativeMatch && *nativeMatch >= image->base + 0x2A
             ? reinterpret_cast<void*>(*nativeMatch - 0x2A)
             : nullptr;
+
+        g_RuntimeScriptThreads = nullptr;
+        if (threadsMatch)
+        {
+            const auto threads = Rip(*image, *threadsMatch + 3);
+            if (threads && image->Contains(*threads, sizeof(LiveScriptThreadArray)))
+                g_RuntimeScriptThreads = reinterpret_cast<LiveScriptThreadArray*>(*threads);
+        }
+
+        g_RuntimeScriptGlobals = nullptr;
+        if (globalsMatch)
+        {
+            const auto globals = Rip(*image, *globalsMatch + 10);
+            if (globals && image->Contains(*globals, GlobalPageCount * sizeof(std::int64_t*)))
+                g_RuntimeScriptGlobals = reinterpret_cast<std::int64_t**>(*globals);
+        }
+
+        if (g_RuntimeScriptGlobals)
+            Game::Enhanced::ScriptGlobal::BindResolver(&ResolveRuntimeScriptGlobal);
+        else
+            Game::Enhanced::ScriptGlobal::ResetResolver();
+
         m_Window = FindGameWindow();
         Log::Write(m_Window ? "GTA window and core patterns resolved" : "GTA window was not found");
         if (!m_InitNativeTablesAddress)
             Log::Write("native table pattern unavailable; native backend will remain disabled");
+        if (!g_RuntimeScriptThreads)
+            Log::Write("script thread table unavailable; native feature ticks will remain disabled");
+        if (!g_RuntimeScriptGlobals)
+            Log::Write("script global table unavailable; ScriptGlobal access will remain disabled");
         return m_CommandQueueAddress && m_SwapChainAddress && m_RunScriptThreadsAddress && m_Window;
     }
 
     bool GtaRuntime::InitializeNativeBackend()
     {
-        // This function is intentionally reached from RunScriptThreadsHook rather
-        // than the DLL bootstrap thread. InitNativeTables operates on script
-        // program metadata, so resolving the scratch table from the game thread
-        // keeps it in the same execution context as GTA's script runtime.
+        // Called only while RuntimeScriptScope has installed a real GTA script
+        // thread in TLS. Enhanced hashes are translated before InitNativeTables,
+        // matching the Gen9 flow used by YimMenuV2's Enhanced invoker.
         m_NativeBootstrapFinalized = true;
-        Log::Write("initializing native backend from game thread");
+        Log::Write("initializing native backend in GTA script TLS context");
 
         using InitNativeTablesFn = void (*)(Game::Enhanced::LiveScriptProgram*);
         if (!m_InitNativeTablesAddress || !IsExecutableAddress(m_InitNativeTablesAddress))
@@ -158,12 +284,18 @@ namespace Sick::Runtime
             return false;
         }
 
-        // InitNativeTables expects each native slot to contain the original
-        // native hash. GTA replaces each slot in place with the corresponding
-        // executable handler. The previous runtime fed a small set of already
-        // cross-mapped values instead, which did not match that contract.
-        auto entries = Game::Natives::Generated::NativeHashes;
+        auto entries = Game::Natives::Generated::EnhancedNativeHashes;
         g_RuntimeNativeHandlers.fill(nullptr);
+        for (std::size_t index = 0; index < entries.size(); ++index)
+        {
+            if (entries[index] == 0)
+            {
+                Log::Write(
+                    "native backend initialization failed: Enhanced hash missing at native index " +
+                    std::to_string(index));
+                return false;
+            }
+        }
 
         Game::Enhanced::LiveScriptProgram program{};
         program.nativeCount = static_cast<std::uint32_t>(entries.size());
@@ -183,7 +315,6 @@ namespace Sick::Runtime
                     std::to_string(index) + " did not resolve to executable memory");
                 return false;
             }
-
             g_RuntimeNativeHandlers[index] = reinterpret_cast<NativeHandler>(handlerAddress);
         }
 
@@ -199,7 +330,7 @@ namespace Sick::Runtime
 
         Log::Write(
             "native backend ready: " + std::to_string(entries.size()) + "/" +
-            std::to_string(Game::Natives::NativeCount) + " handlers resolved");
+            std::to_string(Game::Natives::NativeCount) + " Enhanced handlers resolved");
         return true;
     }
 
@@ -233,9 +364,6 @@ namespace Sick::Runtime
         }
         Log::Write("Present, ResizeBuffers, and RunScriptThreads hooks enabled");
 
-        // GTA Enhanced has shown unstable behavior when the injected DLL replaces
-        // the game's WndProc. Input is intentionally handled from the render
-        // thread instead, which avoids changing the game's window procedure.
         m_OriginalWindowProc = nullptr;
         m_WndProcInstalled = false;
         Log::Write("WndProc subclass disabled; using render-thread keyboard polling fallback");
@@ -275,12 +403,10 @@ namespace Sick::Runtime
             return false;
         }
 
-        // Native resolution is deferred until RunScriptThreadsHook has executed
-        // inside GTA's script thread. This preserves the stable bootstrap/render
-        // behavior while still allowing the native backend to become available.
         m_NativeBootstrapFinalized = false;
         m_NativeBackendRetry = 0;
-        Log::Write("native backend resolution deferred to game thread");
+        m_ScriptContextRetry = 0;
+        Log::Write("native backend resolution deferred to GTA script TLS context");
 
         Log::Write("DLL initialized; F4 opens the menu and End unloads the DLL");
         return true;
@@ -312,9 +438,6 @@ namespace Sick::Runtime
                 }
             }
 
-            // Never submit our first overlay command list from the same Present
-            // invocation that created the renderer resources. Let GTA complete
-            // that Present first and begin drawing on the next frame.
             if (runtime->m_Renderer.Ready() && !initializedThisPresent)
                 runtime->m_Renderer.Render(true);
         }
@@ -352,18 +475,35 @@ namespace Sick::Runtime
         if (!runtime->StopRequested())
         {
             std::scoped_lock lock(runtime->m_GameMutex);
-            if (!Game::Enhanced::EnhancedGame::Ready() && !runtime->m_NativeBootstrapFinalized &&
-                ++runtime->m_NativeBackendRetry >= 300)
-            {
-                runtime->m_NativeBackendRetry = 0;
-                static_cast<void>(runtime->InitializeNativeBackend());
-            }
+
             if (!Game::Enhanced::EnhancedGame::ScriptFunctionsReady() && ++runtime->m_ScriptHostRetry >= 300)
             {
                 runtime->m_ScriptHostRetry = 0;
                 static_cast<void>(Game::Enhanced::EnhancedGame::InitializeScriptHost());
             }
-            Game::Enhanced::EnhancedGame::Tick();
+
+            auto* thread = FindPreferredScriptThread();
+            auto* tls = ResolveRuntimeTls();
+            if (thread && tls)
+            {
+                runtime->m_ScriptContextRetry = 0;
+                RuntimeScriptScope scope{*tls, *thread};
+
+                if (!Game::Enhanced::EnhancedGame::Ready() && !runtime->m_NativeBootstrapFinalized &&
+                    ++runtime->m_NativeBackendRetry >= 300)
+                {
+                    runtime->m_NativeBackendRetry = 0;
+                    static_cast<void>(runtime->InitializeNativeBackend());
+                }
+
+                if (Game::Enhanced::EnhancedGame::Ready())
+                    Game::Enhanced::EnhancedGame::Tick();
+            }
+            else if (++runtime->m_ScriptContextRetry >= 300)
+            {
+                runtime->m_ScriptContextRetry = 0;
+                Log::Write("waiting for a valid GTA script TLS context (freemode/main_persistent/startup)");
+            }
         }
         return result;
     }
@@ -413,10 +553,13 @@ namespace Sick::Runtime
             std::scoped_lock lock(m_GameMutex);
             Game::Enhanced::EnhancedGame::Shutdown();
             g_RuntimeNativeHandlers.fill(nullptr);
+            g_RuntimeScriptThreads = nullptr;
+            g_RuntimeScriptGlobals = nullptr;
         }
         m_NativeBootstrapFinalized = false;
         m_NativeBackendRetry = 0;
         m_ScriptHostRetry = 0;
+        m_ScriptContextRetry = 0;
         s_Instance = nullptr;
     }
 }

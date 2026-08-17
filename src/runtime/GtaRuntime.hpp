@@ -56,6 +56,7 @@ namespace Sick::Runtime
         std::mutex m_GameMutex;
         std::uint32_t m_NativeBackendRetry{};
         std::uint32_t m_ScriptHostRetry{};
+        std::uint32_t m_ScriptContextRetry{};
         bool m_NativeBootstrapFinalized{};
         bool m_MinHookInitialized{};
         bool m_WndProcInstalled{};
