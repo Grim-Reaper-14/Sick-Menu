@@ -28,6 +28,25 @@ namespace Sick::Backend
     void BackendApi::SetNoGravity(bool enabled) noexcept { BackendCore::Get().SetNoGravity(enabled); }
     void BackendApi::SetWaterproof(bool enabled) noexcept { BackendCore::Get().SetWaterproof(enabled); }
 
+    void BackendApi::SetVehicleGodMode(bool enabled) noexcept { BackendCore::Get().SetVehicleGodMode(enabled); }
+    void BackendApi::SetVehicleAutoRepair(bool enabled) noexcept { BackendCore::Get().SetVehicleAutoRepair(enabled); }
+    void BackendApi::SetVehicleKeepClean(bool enabled) noexcept { BackendCore::Get().SetVehicleKeepClean(enabled); }
+    void BackendApi::SetVehicleEngineAlwaysOn(bool enabled) noexcept { BackendCore::Get().SetVehicleEngineAlwaysOn(enabled); }
+    void BackendApi::SetVehicleNoGravity(bool enabled) noexcept { BackendCore::Get().SetVehicleNoGravity(enabled); }
+    void BackendApi::SetVehicleNoCollision(bool enabled) noexcept { BackendCore::Get().SetVehicleNoCollision(enabled); }
+    void BackendApi::RepairVehicle() noexcept { BackendCore::Get().RepairVehicle(); }
+    void BackendApi::CleanVehicle() noexcept { BackendCore::Get().CleanVehicle(); }
+    void BackendApi::PutVehicleOnGround() noexcept { BackendCore::Get().PutVehicleOnGround(); }
+
+    void BackendApi::SetHandlingEditorActive(bool active) noexcept { BackendCore::Get().SetHandlingEditorActive(active); }
+    void BackendApi::SetHandlingValue(Handling::Field field, float value) noexcept { BackendCore::Get().SetHandlingValue(field, value); }
+    void BackendApi::RestoreOriginalHandling() noexcept { BackendCore::Get().RestoreOriginalHandling(); }
+    bool BackendApi::SaveHandlingProfile() { return BackendCore::Get().SaveHandlingProfile(); }
+    bool BackendApi::LoadHandlingProfile(std::string_view name) { return BackendCore::Get().LoadHandlingProfile(name); }
+    bool BackendApi::RefreshHandlingProfiles() { return BackendCore::Get().RefreshHandlingProfiles(); }
+    HandlingProfileCatalogSnapshot BackendApi::HandlingProfiles() const { return BackendCore::Get().HandlingProfiles(); }
+    std::uint64_t BackendApi::HandlingProfileGeneration() const noexcept { return BackendCore::Get().HandlingProfileGeneration(); }
+
     bool BackendApi::SaveProfile(std::string_view name) { return BackendCore::Get().SaveProfile(name); }
     bool BackendApi::LoadProfile(std::string_view name) { return BackendCore::Get().LoadProfile(name); }
     bool BackendApi::SaveConfiguration() { return BackendCore::Get().SaveConfiguration(); }

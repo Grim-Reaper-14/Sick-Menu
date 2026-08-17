@@ -28,9 +28,11 @@ namespace Sick::Ui
         Action,
         Toggle,
         Integer,
+        Float,
         Choice,
         Submenu,
-        Label
+        Label,
+        Info
     };
 
     class MenuOption final
@@ -39,14 +41,13 @@ namespace Sick::Ui
         using ActionCallback = std::function<void()>;
         using ToggleCallback = std::function<void(bool)>;
         using IntegerCallback = std::function<void(int)>;
+        using FloatCallback = std::function<void(float)>;
         using ChoiceCallback = std::function<void(std::size_t)>;
+        using ValueCallback = std::function<std::string()>;
         using EnabledPredicate = std::function<bool()>;
 
         static MenuOption Action(std::string label, ActionCallback callback = {});
-        static MenuOption Toggle(
-            std::string label,
-            bool& value,
-            ToggleCallback callback = {});
+        static MenuOption Toggle(std::string label, bool& value, ToggleCallback callback = {});
         static MenuOption Integer(
             std::string label,
             int& value,
@@ -54,6 +55,14 @@ namespace Sick::Ui
             int maximum,
             int step = 1,
             IntegerCallback callback = {});
+        static MenuOption Float(
+            std::string label,
+            float& value,
+            float minimum,
+            float maximum,
+            float step,
+            int precision = 2,
+            FloatCallback callback = {});
         static MenuOption Choice(
             std::string label,
             std::size_t& index,
@@ -61,6 +70,7 @@ namespace Sick::Ui
             ChoiceCallback callback = {});
         static MenuOption Submenu(std::string label, MenuPage& page);
         static MenuOption Label(std::string label);
+        static MenuOption Info(std::string label, ValueCallback value);
 
         MenuOption& EnabledWhen(EnabledPredicate predicate);
         MenuOption& Describe(std::string description);
@@ -87,7 +97,7 @@ namespace Sick::Ui
         ActionCallback m_Activate;
         std::function<void(int)> m_Adjust;
         std::function<bool()> m_ToggleValue;
-        std::function<std::string()> m_ValueText;
+        ValueCallback m_ValueText;
         EnabledPredicate m_Enabled;
         MenuPage* m_ChildPage{};
     };
@@ -99,10 +109,7 @@ namespace Sick::Ui
 
         MenuOption& Add(MenuOption option);
         MenuOption& AddAction(std::string label, MenuOption::ActionCallback callback = {});
-        MenuOption& AddToggle(
-            std::string label,
-            bool& value,
-            MenuOption::ToggleCallback callback = {});
+        MenuOption& AddToggle(std::string label, bool& value, MenuOption::ToggleCallback callback = {});
         MenuOption& AddInteger(
             std::string label,
             int& value,
@@ -110,6 +117,14 @@ namespace Sick::Ui
             int maximum,
             int step = 1,
             MenuOption::IntegerCallback callback = {});
+        MenuOption& AddFloat(
+            std::string label,
+            float& value,
+            float minimum,
+            float maximum,
+            float step,
+            int precision = 2,
+            MenuOption::FloatCallback callback = {});
         MenuOption& AddChoice(
             std::string label,
             std::size_t& index,
@@ -117,6 +132,7 @@ namespace Sick::Ui
             MenuOption::ChoiceCallback callback = {});
         MenuOption& AddSubmenu(std::string label, MenuPage& page);
         MenuOption& AddLabel(std::string label);
+        MenuOption& AddInfo(std::string label, MenuOption::ValueCallback value);
 
         [[nodiscard]] std::string_view Title() const noexcept;
         [[nodiscard]] const std::vector<MenuOption>& Options() const noexcept;
@@ -147,7 +163,6 @@ namespace Sick::Ui
         void Toggle() noexcept;
         [[nodiscard]] bool IsOpen() const noexcept;
 
-        // Returns true when the input changed the menu or activated an option.
         bool Handle(MenuInput input);
         bool SelectOption(std::size_t optionIndex);
 

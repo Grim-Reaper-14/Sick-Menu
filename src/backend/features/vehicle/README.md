@@ -1,3 +1,3 @@
 # Vehicle features
 
-Backend modules for the Vehicle menu belong here. Use one feature file per menu entry and a small category coordinator only when features share state or vehicle lifecycle handling.
+Vehicle menu backend modules live here. Persistent coordination stays in `VehicleFeatures.cpp`, while individual menu entries own focused operations such as `VehicleGodMode.hpp`, `AutoRepair.hpp`, `NoCollision.hpp`, and one-shot repair/clean/ground actions. Handling lives under `vehicle/handling/`.

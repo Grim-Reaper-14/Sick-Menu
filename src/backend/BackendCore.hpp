@@ -44,6 +44,25 @@ namespace Sick::Backend
         void SetNoGravity(bool enabled) noexcept;
         void SetWaterproof(bool enabled) noexcept;
 
+        void SetVehicleGodMode(bool enabled) noexcept;
+        void SetVehicleAutoRepair(bool enabled) noexcept;
+        void SetVehicleKeepClean(bool enabled) noexcept;
+        void SetVehicleEngineAlwaysOn(bool enabled) noexcept;
+        void SetVehicleNoGravity(bool enabled) noexcept;
+        void SetVehicleNoCollision(bool enabled) noexcept;
+        void RepairVehicle() noexcept;
+        void CleanVehicle() noexcept;
+        void PutVehicleOnGround() noexcept;
+
+        void SetHandlingEditorActive(bool active) noexcept;
+        void SetHandlingValue(Handling::Field field, float value) noexcept;
+        void RestoreOriginalHandling() noexcept;
+        [[nodiscard]] bool SaveHandlingProfile();
+        [[nodiscard]] bool LoadHandlingProfile(std::string_view name);
+        [[nodiscard]] bool RefreshHandlingProfiles();
+        [[nodiscard]] HandlingProfileCatalogSnapshot HandlingProfiles() const;
+        [[nodiscard]] std::uint64_t HandlingProfileGeneration() const noexcept;
+
         [[nodiscard]] bool SaveProfile(std::string_view name);
         [[nodiscard]] bool LoadProfile(std::string_view name);
         [[nodiscard]] bool SaveConfiguration();

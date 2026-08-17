@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MenuRenderer.hpp"
+#include "shared/HandlingTypes.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -74,6 +75,18 @@ namespace Sick::Ui
         bool waterproof{};
         bool beastJump{};
         bool gracefulLanding{};
+
+        bool vehicleGodMode{};
+        bool vehicleAutoRepair{};
+        bool vehicleKeepClean{};
+        bool vehicleEngineAlwaysOn{};
+        bool vehicleNoGravity{};
+        bool vehicleNoCollision{};
+
+        bool handlingAvailable{};
+        bool handlingVehicleAttached{};
+        Handling::Values handlingValues{};
+
         bool demoToggle{};
         int demoNumber{1};
         std::size_t demoVector{2};
@@ -103,6 +116,23 @@ namespace Sick::Ui
         std::function<void(bool)> waterproof;
         std::function<void(bool)> beastJump;
         std::function<void(bool)> gracefulLanding;
+
+        std::function<void(bool)> vehicleGodMode;
+        std::function<void(bool)> vehicleAutoRepair;
+        std::function<void(bool)> vehicleKeepClean;
+        std::function<void(bool)> vehicleEngineAlwaysOn;
+        std::function<void(bool)> vehicleNoGravity;
+        std::function<void(bool)> vehicleNoCollision;
+        std::function<void()> repairVehicle;
+        std::function<void()> cleanVehicle;
+        std::function<void()> putVehicleOnGround;
+
+        std::function<void(Handling::Field, float)> handlingValue;
+        std::function<void()> restoreOriginalHandling;
+        std::function<void()> saveHandlingProfile;
+        std::function<void(const std::string&)> loadHandlingProfile;
+        std::function<void()> refreshHandlingProfiles;
+
         std::function<void()> regularAction;
         std::function<void(bool)> demoToggle;
         std::function<void(int)> demoNumber;
@@ -132,7 +162,10 @@ namespace Sick::Ui
         void SetPreferences(SickMenuPreferences preferences) noexcept;
         [[nodiscard]] SickMenuPreferences Preferences() const;
         void SetAssetCatalog(SickMenuAssetCatalog catalog);
+        void SetHandlingProfiles(std::uint64_t generation, std::vector<std::string> profiles);
+        [[nodiscard]] bool IsHandlingPageActive() const noexcept;
         [[nodiscard]] std::uint64_t AssetGeneration() const noexcept { return m_Assets.generation; }
+        [[nodiscard]] std::uint64_t HandlingProfileGeneration() const noexcept { return m_HandlingProfileGeneration; }
         [[nodiscard]] std::string SelectedBannerPath() const;
         [[nodiscard]] std::string SelectedFontPath() const;
 
@@ -149,6 +182,12 @@ namespace Sick::Ui
         [[nodiscard]] const MenuPage& PlayerPage() const noexcept;
         [[nodiscard]] MenuPage& VehiclePage() noexcept;
         [[nodiscard]] const MenuPage& VehiclePage() const noexcept;
+        [[nodiscard]] MenuPage& HandlingPage() noexcept { return m_HandlingPage; }
+        [[nodiscard]] const MenuPage& HandlingPage() const noexcept { return m_HandlingPage; }
+        [[nodiscard]] MenuPage& HandlingGeneralPage() noexcept { return m_HandlingGeneralPage; }
+        [[nodiscard]] const MenuPage& HandlingGeneralPage() const noexcept { return m_HandlingGeneralPage; }
+        [[nodiscard]] MenuPage& HandlingProfilesPage() noexcept { return m_HandlingProfilesPage; }
+        [[nodiscard]] const MenuPage& HandlingProfilesPage() const noexcept { return m_HandlingProfilesPage; }
         [[nodiscard]] MenuPage& WeaponsPage() noexcept;
         [[nodiscard]] const MenuPage& WeaponsPage() const noexcept;
         [[nodiscard]] MenuPage& WorldPage() noexcept;
@@ -176,6 +215,8 @@ namespace Sick::Ui
         [[nodiscard]] const MenuPage& SelfPage() const noexcept;
 
     private:
+        void BuildHandlingPages();
+        void RebuildHandlingProfiles();
         void BuildSettingsPages();
         void RebuildAssetPages();
         void ApplyLayout() noexcept;
@@ -189,10 +230,23 @@ namespace Sick::Ui
         SickMenuCallbacks m_Callbacks;
         SickMenuState m_State;
         SickMenuAssetCatalog m_Assets;
+        std::vector<std::string> m_HandlingProfiles;
+        std::uint64_t m_HandlingProfileGeneration{};
         MenuStyle m_DefaultStyle{};
         MenuPage m_RootPage{"SICK MENU"};
         MenuPage m_PlayerPage{"PLAYER"};
         MenuPage m_VehiclePage{"VEHICLE"};
+        MenuPage m_HandlingPage{"HANDLING"};
+        MenuPage m_HandlingGeneralPage{"HANDLING / GENERAL"};
+        MenuPage m_HandlingTransmissionPage{"HANDLING / TRANSMISSION"};
+        MenuPage m_HandlingBrakesPage{"HANDLING / BRAKES"};
+        MenuPage m_HandlingSteeringPage{"HANDLING / STEERING"};
+        MenuPage m_HandlingTractionPage{"HANDLING / TRACTION"};
+        MenuPage m_HandlingSuspensionPage{"HANDLING / SUSPENSION"};
+        MenuPage m_HandlingAntiRollPage{"HANDLING / ANTI-ROLL BARS"};
+        MenuPage m_HandlingRollCentrePage{"HANDLING / ROLL CENTRE"};
+        MenuPage m_HandlingOtherPage{"HANDLING / OTHER"};
+        MenuPage m_HandlingProfilesPage{"HANDLING PROFILES"};
         MenuPage m_WeaponsPage{"WEAPONS"};
         MenuPage m_WorldPage{"WORLD"};
         MenuPage m_TeleportPage{"TELEPORT"};

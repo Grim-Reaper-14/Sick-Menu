@@ -43,6 +43,16 @@ namespace Sick::Game::Natives
         Register({Hashes::SET_ENABLE_SCUBA, "SET_ENABLE_SCUBA", "PED", 2, false});
         Register({Hashes::SET_PED_DIES_IN_WATER, "SET_PED_DIES_IN_WATER", "PED", 2, false});
         Register({Hashes::SET_ENTITY_HAS_GRAVITY, "SET_ENTITY_HAS_GRAVITY", "ENTITY", 2, false});
+        Register({Hashes::GET_VEHICLE_PED_IS_IN, "GET_VEHICLE_PED_IS_IN", "PED", 2, false});
+        Register({Hashes::SET_ENTITY_COLLISION, "SET_ENTITY_COLLISION", "ENTITY", 3, false});
+        Register({Hashes::SET_VEHICLE_FIXED, "SET_VEHICLE_FIXED", "VEHICLE", 1, false});
+        Register({Hashes::SET_VEHICLE_DEFORMATION_FIXED, "SET_VEHICLE_DEFORMATION_FIXED", "VEHICLE", 1, false});
+        Register({Hashes::SET_VEHICLE_DIRT_LEVEL, "SET_VEHICLE_DIRT_LEVEL", "VEHICLE", 2, false});
+        Register({Hashes::SET_VEHICLE_ENGINE_ON, "SET_VEHICLE_ENGINE_ON", "VEHICLE", 4, false});
+        Register({Hashes::SET_VEHICLE_ON_GROUND_PROPERLY, "SET_VEHICLE_ON_GROUND_PROPERLY", "VEHICLE", 2, false});
+        Register({Hashes::SET_VEHICLE_ENGINE_HEALTH, "SET_VEHICLE_ENGINE_HEALTH", "VEHICLE", 2, false});
+        Register({Hashes::SET_VEHICLE_BODY_HEALTH, "SET_VEHICLE_BODY_HEALTH", "VEHICLE", 2, false});
+        Register({Hashes::SET_VEHICLE_PETROL_TANK_HEALTH, "SET_VEHICLE_PETROL_TANK_HEALTH", "VEHICLE", 2, false});
     }
 
     void NativeRegistry::Clear()
@@ -58,7 +68,6 @@ namespace Sick::Game::Natives
         const auto it = m_ByHash.find(hash);
         if (it == m_ByHash.end())
             return std::nullopt;
-
         return it->second;
     }
 
@@ -68,11 +77,9 @@ namespace Sick::Game::Natives
         const auto nameIt = m_ByName.find(std::string{name});
         if (nameIt == m_ByName.end())
             return std::nullopt;
-
         const auto hashIt = m_ByHash.find(nameIt->second);
         if (hashIt == m_ByHash.end())
             return std::nullopt;
-
         return hashIt->second;
     }
 
@@ -81,10 +88,8 @@ namespace Sick::Game::Natives
         std::shared_lock lock(m_Mutex);
         std::vector<NativeMetadata> result;
         result.reserve(m_ByHash.size());
-
         for (const auto& [_, metadata] : m_ByHash)
             result.push_back(metadata);
-
         return result;
     }
 

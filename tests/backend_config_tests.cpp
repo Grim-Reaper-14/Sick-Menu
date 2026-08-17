@@ -20,18 +20,12 @@ namespace
 
     bool Check(bool condition, const char* expression, int line)
     {
-        if (condition)
-            return true;
+        if (condition) return true;
         std::cerr << "check failed at line " << line << ": " << expression << '\n';
         return false;
     }
 
-#define CHECK(expression) \
-    do \
-    { \
-        if (!Check(static_cast<bool>(expression), #expression, __LINE__)) \
-            return 1; \
-    } while (false)
+#define CHECK(expression) do { if (!Check(static_cast<bool>(expression), #expression, __LINE__)) return 1; } while (false)
 
     bool HasTemporaryFile(FileSystem& files)
     {
@@ -81,6 +75,12 @@ int main()
     enabled.player.aqualung = true;
     enabled.player.noGravity = true;
     enabled.player.waterproof = true;
+    enabled.vehicle.godMode = true;
+    enabled.vehicle.autoRepair = true;
+    enabled.vehicle.keepClean = true;
+    enabled.vehicle.engineAlwaysOn = true;
+    enabled.vehicle.noGravity = true;
+    enabled.vehicle.noCollision = true;
     CHECK(configs.Save("roundtrip", enabled));
     io.Stop();
 
@@ -106,11 +106,14 @@ int main()
     CHECK(loaded->player.aqualung);
     CHECK(loaded->player.noGravity);
     CHECK(loaded->player.waterproof);
+    CHECK(loaded->vehicle.godMode);
+    CHECK(loaded->vehicle.autoRepair);
+    CHECK(loaded->vehicle.keepClean);
+    CHECK(loaded->vehicle.engineAlwaysOn);
+    CHECK(loaded->vehicle.noGravity);
+    CHECK(loaded->vehicle.noCollision);
 
-    CHECK(files.AtomicWriteText(
-        FileArea::Configs,
-        "legacy.json",
-        R"({"version":1,"player":{"god_mode":true}})"));
+    CHECK(files.AtomicWriteText(FileArea::Configs, "legacy.json", R"({"version":1,"player":{"god_mode":true}})"));
     CHECK(io.Start(1, 32));
     CHECK(configs.Load("legacy"));
     io.Stop();
@@ -119,7 +122,19 @@ int main()
     CHECK(legacy->version == FeatureProfile::CurrentVersion);
     CHECK(legacy->player.godMode);
     CHECK(!legacy->player.superJump);
-    CHECK(legacy->player.wantedLevel == 0);
+    CHECK(!legacy->vehicle.godMode);
+
+    CHECK(files.AtomicWriteText(FileArea::Configs, "v2.json", R"({"version":2,"player":{"god_mode":true,"wanted_level":3,"super_jump":true}})"));
+    CHECK(io.Start(1, 32));
+    CHECK(configs.Load("v2"));
+    io.Stop();
+    auto v2 = configs.TakePendingProfile();
+    CHECK(v2.has_value());
+    CHECK(v2->version == FeatureProfile::CurrentVersion);
+    CHECK(v2->player.godMode);
+    CHECK(v2->player.superJump);
+    CHECK(v2->player.wantedLevel == 3);
+    CHECK(!v2->vehicle.autoRepair);
 
     CHECK(files.AtomicWriteText(FileArea::Configs, "broken.json", "{ not valid json"));
     CHECK(io.Start(1, 32));
@@ -127,10 +142,7 @@ int main()
     io.Stop();
     CHECK(!configs.TakePendingProfile().has_value());
 
-    CHECK(files.AtomicWriteText(
-        FileArea::Configs,
-        "future.json",
-        R"({"version":999,"player":{"god_mode":true}})"));
+    CHECK(files.AtomicWriteText(FileArea::Configs, "future.json", R"({"version":999,"player":{"god_mode":true}})"));
     CHECK(io.Start(1, 32));
     CHECK(configs.Load("future"));
     io.Stop();
@@ -154,8 +166,7 @@ int main()
         blockerReady.set_value();
         releaseFuture.wait();
     });
-    if (!Check(blocker.has_value(), "blocker.has_value()", __LINE__) ||
-        blockerReadyFuture.wait_for(std::chrono::seconds(2)) != std::future_status::ready)
+    if (!Check(blocker.has_value(), "blocker.has_value()", __LINE__) || blockerReadyFuture.wait_for(std::chrono::seconds(2)) != std::future_status::ready)
     {
         releaseBlocker.set_value();
         io.Stop();
@@ -168,7 +179,6 @@ int main()
     io.Stop();
     CHECK(firstQueued);
     CHECK(secondQueued);
-
     const auto latest = configs.TakePendingProfile();
     CHECK(latest.has_value());
     CHECK(!latest->player.godMode);

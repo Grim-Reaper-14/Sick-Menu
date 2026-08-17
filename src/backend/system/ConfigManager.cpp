@@ -39,6 +39,14 @@ namespace Sick::Backend::System
                     {"no_gravity", profile.player.noGravity},
                     {"waterproof", profile.player.waterproof},
                 }},
+                {"vehicle", {
+                    {"god_mode", profile.vehicle.godMode},
+                    {"auto_repair", profile.vehicle.autoRepair},
+                    {"keep_clean", profile.vehicle.keepClean},
+                    {"engine_always_on", profile.vehicle.engineAlwaysOn},
+                    {"no_gravity", profile.vehicle.noGravity},
+                    {"no_collision", profile.vehicle.noCollision},
+                }},
             }.dump(2) + '\n';
         }
 
@@ -51,7 +59,7 @@ namespace Sick::Backend::System
                     return std::nullopt;
 
                 const auto version = root.at("version").get<std::uint32_t>();
-                if (version != 1 && version != FeatureProfile::CurrentVersion)
+                if (version < 1 || version > FeatureProfile::CurrentVersion)
                     return std::nullopt;
 
                 const auto& player = root.at("player");
@@ -75,6 +83,20 @@ namespace Sick::Backend::System
                 profile.player.aqualung = player.value("aqualung", false);
                 profile.player.noGravity = player.value("no_gravity", false);
                 profile.player.waterproof = player.value("waterproof", false);
+
+                if (version < 3)
+                    return profile;
+
+                const auto vehicleIt = root.find("vehicle");
+                if (vehicleIt == root.end() || !vehicleIt->is_object())
+                    return std::nullopt;
+                const auto& vehicle = *vehicleIt;
+                profile.vehicle.godMode = vehicle.value("god_mode", false);
+                profile.vehicle.autoRepair = vehicle.value("auto_repair", false);
+                profile.vehicle.keepClean = vehicle.value("keep_clean", false);
+                profile.vehicle.engineAlwaysOn = vehicle.value("engine_always_on", false);
+                profile.vehicle.noGravity = vehicle.value("no_gravity", false);
+                profile.vehicle.noCollision = vehicle.value("no_collision", false);
                 return profile;
             }
             catch (...)

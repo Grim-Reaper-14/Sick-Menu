@@ -1,5 +1,7 @@
 #pragma once
 
+#include "shared/HandlingTypes.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -28,6 +30,30 @@ namespace Sick::Backend
         ToggleFeatureSnapshot aqualung;
         ToggleFeatureSnapshot noGravity;
         ToggleFeatureSnapshot waterproof;
+    };
+
+    struct VehicleFeatureSnapshot
+    {
+        ToggleFeatureSnapshot godMode;
+        ToggleFeatureSnapshot autoRepair;
+        ToggleFeatureSnapshot keepClean;
+        ToggleFeatureSnapshot engineAlwaysOn;
+        ToggleFeatureSnapshot noGravity;
+        ToggleFeatureSnapshot noCollision;
+    };
+
+    struct HandlingFeatureSnapshot
+    {
+        bool backendAvailable{};
+        bool vehicleAttached{};
+        std::uint64_t revision{};
+        Handling::Values values{};
+    };
+
+    struct HandlingProfileCatalogSnapshot
+    {
+        std::uint64_t generation{};
+        std::vector<std::string> names;
     };
 
     struct BackendQueueSnapshot
@@ -92,6 +118,8 @@ namespace Sick::Backend
         bool nativeReady{};
         bool scriptReady{};
         PlayerFeatureSnapshot player;
+        VehicleFeatureSnapshot vehicle;
+        HandlingFeatureSnapshot handling;
         BackendQueueSnapshot queues;
         BackendPerformanceSnapshot performance;
         BackgroundSnapshot background;
@@ -114,12 +142,23 @@ namespace Sick::Backend
         bool waterproof{};
     };
 
+    struct VehicleFeatureProfile
+    {
+        bool godMode{};
+        bool autoRepair{};
+        bool keepClean{};
+        bool engineAlwaysOn{};
+        bool noGravity{};
+        bool noCollision{};
+    };
+
     struct FeatureProfile
     {
-        static constexpr std::uint32_t CurrentVersion = 2;
+        static constexpr std::uint32_t CurrentVersion = 3;
 
         std::uint32_t version{CurrentVersion};
         PlayerFeatureProfile player;
+        VehicleFeatureProfile vehicle;
     };
 
     struct AssetEntry

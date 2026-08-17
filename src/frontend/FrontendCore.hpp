@@ -25,6 +25,8 @@ namespace Sick::Frontend
     private:
         Ui::SickMenu m_Menu;
         std::uint64_t m_AssetGeneration{};
+        std::uint64_t m_HandlingRevision{};
+        std::uint64_t m_HandlingProfileGeneration{};
         bool m_PreferencesLoaded{};
     };
 }

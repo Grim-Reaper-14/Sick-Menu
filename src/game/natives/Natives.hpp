@@ -29,6 +29,16 @@ namespace Sick::Game::Natives
         inline constexpr NativeHash SET_ENABLE_SCUBA = Generated::HashFor(NativeIndex::SET_ENABLE_SCUBA);
         inline constexpr NativeHash SET_PED_DIES_IN_WATER = Generated::HashFor(NativeIndex::SET_PED_DIES_IN_WATER);
         inline constexpr NativeHash SET_ENTITY_HAS_GRAVITY = Generated::HashFor(NativeIndex::SET_ENTITY_HAS_GRAVITY);
+        inline constexpr NativeHash GET_VEHICLE_PED_IS_IN = Generated::HashFor(NativeIndex::GET_VEHICLE_PED_IS_IN);
+        inline constexpr NativeHash SET_ENTITY_COLLISION = Generated::HashFor(NativeIndex::SET_ENTITY_COLLISION);
+        inline constexpr NativeHash SET_VEHICLE_FIXED = Generated::HashFor(NativeIndex::SET_VEHICLE_FIXED);
+        inline constexpr NativeHash SET_VEHICLE_DEFORMATION_FIXED = Generated::HashFor(NativeIndex::SET_VEHICLE_DEFORMATION_FIXED);
+        inline constexpr NativeHash SET_VEHICLE_DIRT_LEVEL = Generated::HashFor(NativeIndex::SET_VEHICLE_DIRT_LEVEL);
+        inline constexpr NativeHash SET_VEHICLE_ENGINE_ON = Generated::HashFor(NativeIndex::SET_VEHICLE_ENGINE_ON);
+        inline constexpr NativeHash SET_VEHICLE_ON_GROUND_PROPERLY = Generated::HashFor(NativeIndex::SET_VEHICLE_ON_GROUND_PROPERLY);
+        inline constexpr NativeHash SET_VEHICLE_ENGINE_HEALTH = Generated::HashFor(NativeIndex::SET_VEHICLE_ENGINE_HEALTH);
+        inline constexpr NativeHash SET_VEHICLE_BODY_HEALTH = Generated::HashFor(NativeIndex::SET_VEHICLE_BODY_HEALTH);
+        inline constexpr NativeHash SET_VEHICLE_PETROL_TANK_HEALTH = Generated::HashFor(NativeIndex::SET_VEHICLE_PETROL_TANK_HEALTH);
     }
 
     namespace PLAYER
@@ -120,6 +130,11 @@ namespace Sick::Game::Natives
         {
             NativeInvoker::Invoke<NativeIndex::SET_PED_DIES_IN_WATER, void, false>(ped, enabled);
         }
+
+        [[nodiscard]] inline Vehicle GET_VEHICLE_PED_IS_IN(Ped ped, bool includeEntering) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::GET_VEHICLE_PED_IS_IN, Vehicle, false>(ped, includeEntering);
+        }
     }
 
     namespace ENTITY
@@ -143,6 +158,59 @@ namespace Sick::Game::Natives
         inline void SET_ENTITY_HAS_GRAVITY(Entity entity, bool enabled) noexcept
         {
             NativeInvoker::Invoke<NativeIndex::SET_ENTITY_HAS_GRAVITY, void, false>(entity, enabled);
+        }
+
+        inline void SET_ENTITY_COLLISION(Entity entity, bool enabled, bool keepPhysics) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_ENTITY_COLLISION, void, false>(entity, enabled, keepPhysics);
+        }
+    }
+
+    namespace VEHICLE
+    {
+        inline void SET_VEHICLE_FIXED(Vehicle vehicle) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_FIXED, void, false>(vehicle);
+        }
+
+        inline void SET_VEHICLE_DEFORMATION_FIXED(Vehicle vehicle) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_DEFORMATION_FIXED, void, false>(vehicle);
+        }
+
+        inline void SET_VEHICLE_DIRT_LEVEL(Vehicle vehicle, float level) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_DIRT_LEVEL, void, false>(vehicle, level);
+        }
+
+        inline void SET_VEHICLE_ENGINE_ON(
+            Vehicle vehicle,
+            bool enabled,
+            bool instantly,
+            bool disableAutoStart) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_ENGINE_ON, void, false>(
+                vehicle, enabled, instantly, disableAutoStart);
+        }
+
+        [[nodiscard]] inline bool SET_VEHICLE_ON_GROUND_PROPERLY(Vehicle vehicle, float p1 = 5.0F) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_ON_GROUND_PROPERLY, bool, false>(vehicle, p1);
+        }
+
+        inline void SET_VEHICLE_ENGINE_HEALTH(Vehicle vehicle, float health) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_ENGINE_HEALTH, void, false>(vehicle, health);
+        }
+
+        inline void SET_VEHICLE_BODY_HEALTH(Vehicle vehicle, float health) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_BODY_HEALTH, void, false>(vehicle, health);
+        }
+
+        inline void SET_VEHICLE_PETROL_TANK_HEALTH(Vehicle vehicle, float health) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_PETROL_TANK_HEALTH, void, false>(vehicle, health);
         }
     }
 }

@@ -14,40 +14,14 @@ namespace Sick::Ui
         std::uint8_t green{};
         std::uint8_t blue{};
         std::uint8_t alpha{255};
-
         [[nodiscard]] constexpr bool operator==(const MenuColor&) const noexcept = default;
     };
 
-    struct MenuPoint
-    {
-        float x{};
-        float y{};
-    };
+    struct MenuPoint { float x{}; float y{}; };
+    struct MenuRect { float left{}; float top{}; float right{}; float bottom{}; };
 
-    struct MenuRect
-    {
-        float left{};
-        float top{};
-        float right{};
-        float bottom{};
-    };
-
-    enum class MenuTextAlign
-    {
-        Left,
-        Center,
-        Right
-    };
-
-    enum class MenuDrawCommandKind
-    {
-        FilledRect,
-        Text,
-        FilledCircle,
-        Line,
-        Image
-    };
-
+    enum class MenuTextAlign { Left, Center, Right };
+    enum class MenuDrawCommandKind { FilledRect, Text, FilledCircle, Line, Image };
     using MenuTexture = std::uintptr_t;
 
     struct MenuDrawCommand
@@ -69,28 +43,17 @@ namespace Sick::Ui
     {
     public:
         void AddFilledRect(MenuRect bounds, MenuColor color);
-        void AddText(
-            MenuRect bounds,
-            std::string text,
-            MenuColor color,
-            float fontSize,
-            MenuTextAlign alignment = MenuTextAlign::Left);
+        void AddText(MenuRect bounds, std::string text, MenuColor color, float fontSize, MenuTextAlign alignment = MenuTextAlign::Left);
         void AddFilledCircle(MenuPoint center, float radius, MenuColor color);
         void AddLine(MenuPoint start, MenuPoint end, MenuColor color, float thickness);
         void AddImage(MenuRect bounds, MenuTexture texture);
-
         [[nodiscard]] const std::vector<MenuDrawCommand>& Commands() const noexcept;
         [[nodiscard]] bool Empty() const noexcept;
-
     private:
         std::vector<MenuDrawCommand> m_Commands;
     };
 
-    struct MenuViewport
-    {
-        float width{1920.0F};
-        float height{1080.0F};
-    };
+    struct MenuViewport { float width{1920.0F}; float height{1080.0F}; };
 
     struct MenuStyle
     {
@@ -104,10 +67,12 @@ namespace Sick::Ui
         float headerHeight{131.0F};
         float titleHeight{53.0F};
         float rowHeight{48.0F};
+        float descriptionHeight{44.0F};
         float footerHeight{53.0F};
         float horizontalPadding{15.0F};
         float titleFontSize{28.0F};
         float optionFontSize{25.0F};
+        float descriptionFontSize{16.0F};
         float brandFontSize{15.0F};
         std::size_t maxVisibleRows{11};
 
@@ -133,15 +98,9 @@ namespace Sick::Ui
     public:
         MenuRenderer() = default;
         explicit MenuRenderer(MenuStyle style);
-
-        [[nodiscard]] MenuDrawList Render(
-            MenuController& controller,
-            MenuViewport viewport,
-            MenuTexture headerTexture = 0) const;
-
+        [[nodiscard]] MenuDrawList Render(MenuController& controller, MenuViewport viewport, MenuTexture headerTexture = 0) const;
         [[nodiscard]] MenuStyle& Style() noexcept;
         [[nodiscard]] const MenuStyle& Style() const noexcept;
-
     private:
         MenuStyle m_Style;
     };

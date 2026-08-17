@@ -76,6 +76,8 @@ namespace Sick::Backend
 
         if (const auto profile = m_Background.Configs().TakePendingProfile())
             m_Features.ApplyProfile(*profile);
+        if (const auto handling = m_Background.HandlingProfiles().TakePendingValues())
+            m_Features.ApplyHandlingValues(*handling);
 
         m_Features.Tick(nativeReady);
 
@@ -122,6 +124,36 @@ namespace Sick::Backend
     void BackendCore::SetAqualung(bool enabled) noexcept { m_Features.SetAqualung(enabled); }
     void BackendCore::SetNoGravity(bool enabled) noexcept { m_Features.SetNoGravity(enabled); }
     void BackendCore::SetWaterproof(bool enabled) noexcept { m_Features.SetWaterproof(enabled); }
+
+    void BackendCore::SetVehicleGodMode(bool enabled) noexcept { m_Features.SetVehicleGodMode(enabled); }
+    void BackendCore::SetVehicleAutoRepair(bool enabled) noexcept { m_Features.SetVehicleAutoRepair(enabled); }
+    void BackendCore::SetVehicleKeepClean(bool enabled) noexcept { m_Features.SetVehicleKeepClean(enabled); }
+    void BackendCore::SetVehicleEngineAlwaysOn(bool enabled) noexcept { m_Features.SetVehicleEngineAlwaysOn(enabled); }
+    void BackendCore::SetVehicleNoGravity(bool enabled) noexcept { m_Features.SetVehicleNoGravity(enabled); }
+    void BackendCore::SetVehicleNoCollision(bool enabled) noexcept { m_Features.SetVehicleNoCollision(enabled); }
+    void BackendCore::RepairVehicle() noexcept { m_Features.RepairVehicle(); }
+    void BackendCore::CleanVehicle() noexcept { m_Features.CleanVehicle(); }
+    void BackendCore::PutVehicleOnGround() noexcept { m_Features.PutVehicleOnGround(); }
+
+    void BackendCore::SetHandlingEditorActive(bool active) noexcept { m_Features.SetHandlingEditorActive(active); }
+    void BackendCore::SetHandlingValue(Handling::Field field, float value) noexcept { m_Features.SetHandlingValue(field, value); }
+    void BackendCore::RestoreOriginalHandling() noexcept { m_Features.RestoreOriginalHandling(); }
+
+    bool BackendCore::SaveHandlingProfile()
+    {
+        const auto handling = m_Features.HandlingSnapshot();
+        return handling.backendAvailable && handling.vehicleAttached &&
+            m_Background.HandlingProfiles().Save(m_Features.HandlingValues());
+    }
+
+    bool BackendCore::LoadHandlingProfile(std::string_view name)
+    {
+        return m_Background.HandlingProfiles().Load(name);
+    }
+
+    bool BackendCore::RefreshHandlingProfiles() { return m_Background.HandlingProfiles().Refresh(); }
+    HandlingProfileCatalogSnapshot BackendCore::HandlingProfiles() const { return m_Background.HandlingProfiles().Snapshot(); }
+    std::uint64_t BackendCore::HandlingProfileGeneration() const noexcept { return m_Background.HandlingProfiles().Generation(); }
 
     bool BackendCore::SaveProfile(std::string_view name)
     {
@@ -172,6 +204,8 @@ namespace Sick::Backend
     BackendSnapshot BackendCore::Snapshot() const noexcept
     {
         const auto player = m_Features.PlayerSnapshot();
+        const auto vehicle = m_Features.VehicleSnapshot();
+        const auto handling = m_Features.HandlingSnapshot();
         const auto performance = m_Performance.Snapshot();
         const auto background = m_Background.Snapshot();
         return {
@@ -179,6 +213,8 @@ namespace Sick::Backend
             .nativeReady = m_NativeReady.load(std::memory_order_acquire),
             .scriptReady = m_ScriptReady.load(std::memory_order_acquire),
             .player = player,
+            .vehicle = vehicle,
+            .handling = handling,
             .queues = {
                 .gameCalls = m_CallHub.Pending(),
                 .fibers = m_Fibers.Pending(),

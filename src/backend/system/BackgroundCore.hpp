@@ -4,6 +4,7 @@
 #include "AssetCatalog.hpp"
 #include "ConfigManager.hpp"
 #include "FileSystem.hpp"
+#include "HandlingProfileManager.hpp"
 #include "IoService.hpp"
 #include "SettingsManager.hpp"
 
@@ -23,6 +24,8 @@ namespace Sick::Backend::System
         [[nodiscard]] const SettingsManager& Settings() const noexcept { return m_Settings; }
         [[nodiscard]] ConfigManager& Configs() noexcept { return m_Configs; }
         [[nodiscard]] const ConfigManager& Configs() const noexcept { return m_Configs; }
+        [[nodiscard]] HandlingProfileManager& HandlingProfiles() noexcept { return m_HandlingProfiles; }
+        [[nodiscard]] const HandlingProfileManager& HandlingProfiles() const noexcept { return m_HandlingProfiles; }
         [[nodiscard]] AssetCatalog& Assets() noexcept { return m_Assets; }
         [[nodiscard]] const AssetCatalog& Assets() const noexcept { return m_Assets; }
         [[nodiscard]] IoService& Io() noexcept { return m_Io; }
@@ -34,6 +37,7 @@ namespace Sick::Backend::System
         SettingsManager m_Settings;
         IoService m_Io;
         ConfigManager m_Configs;
+        HandlingProfileManager m_HandlingProfiles;
         AssetCatalog m_Assets;
         bool m_Initialized{};
     };

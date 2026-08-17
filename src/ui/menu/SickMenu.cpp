@@ -1,5 +1,16 @@
 #include "SickMenu.hpp"
 
+#include "categories/menu_settings/Controls.hpp"
+#include "categories/menu_settings/ExitGta.hpp"
+#include "categories/menu_settings/ExitMenu.hpp"
+#include "categories/menu_settings/Fonts.hpp"
+#include "categories/menu_settings/ImageLoader.hpp"
+#include "categories/menu_settings/LuaScripts.hpp"
+#include "categories/menu_settings/MenuSize.hpp"
+#include "categories/menu_settings/MoveMenu.hpp"
+#include "categories/menu_settings/SaveConfiguration.hpp"
+#include "categories/menu_settings/Themes.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <utility>
@@ -34,40 +45,40 @@ namespace Sick::Ui
 
         m_PlayerPage.AddToggle("GodMode", m_State.godMode, [this](bool enabled) {
             Notify(m_Callbacks.godMode, enabled);
-        });
+        }).Describe("Makes the local player invincible while enabled.");
         m_PlayerPage.AddToggle("Infinite Oxygen", m_State.infiniteOxygen, [this](bool enabled) {
             Notify(m_Callbacks.infiniteOxygen, enabled);
-        });
+        }).Describe("Keeps underwater breathing time effectively unlimited.");
         m_PlayerPage.AddToggle("No Ragdoll", m_State.noRagdoll, [this](bool enabled) {
             Notify(m_Callbacks.noRagdoll, enabled);
-        });
+        }).Describe("Prevents the local player from entering ragdoll state.");
         m_PlayerPage.AddToggle("Super Jump", m_State.superJump, [this](bool enabled) {
             Notify(m_Callbacks.superJump, enabled);
-        });
+        }).Describe("Applies GTA's super-jump effect each game frame while enabled.");
         m_PlayerPage.AddToggle("Seat Belt", m_State.seatBelt, [this](bool enabled) {
             Notify(m_Callbacks.seatBelt, enabled);
-        });
+        }).Describe("Reduces vehicle ejection behavior for the local player.");
         m_PlayerPage.AddToggle("No Wanted Level", m_State.noWantedLevel, [this](bool enabled) {
             Notify(m_Callbacks.noWantedLevel, enabled);
-        });
+        }).Describe("Continuously clears the local player's wanted level.");
         m_PlayerPage.AddInteger("Set Wanted Level", m_State.wantedLevel, 0, 5, 1, [this](int level) {
             Notify(m_Callbacks.wantedLevel, level);
-        });
+        }).Describe("Sets the requested wanted level from 0 to 5 when No Wanted Level is off.");
         m_PlayerPage.AddToggle("Fast Run", m_State.fastRun, [this](bool enabled) {
             Notify(m_Callbacks.fastRun, enabled);
-        });
+        }).Describe("Raises the player run and sprint multiplier to GTA's supported maximum.");
         m_PlayerPage.AddToggle("Fast Swim", m_State.fastSwim, [this](bool enabled) {
             Notify(m_Callbacks.fastSwim, enabled);
-        });
+        }).Describe("Raises the player swim multiplier to GTA's supported maximum.");
         m_PlayerPage.AddToggle("Keep Player Clean", m_State.keepPlayerClean, [this](bool enabled) {
             Notify(m_Callbacks.keepPlayerClean, enabled);
-        });
+        }).Describe("Periodically clears dirt, blood and visible damage from the player.");
         m_PlayerPage.AddToggle("Aqualung", m_State.aqualung, [this](bool enabled) {
             Notify(m_Callbacks.aqualung, enabled);
-        });
+        }).Describe("Enables scuba behavior and extended underwater breathing.");
         m_PlayerPage.AddToggle("No Gravity", m_State.noGravity, [this](bool enabled) {
             Notify(m_Callbacks.noGravity, enabled);
-        });
+        }).Describe("Disables gravity on the local player entity.");
         m_PlayerPage.AddToggle("Waterproof", m_State.waterproof, [this](bool enabled) {
             Notify(m_Callbacks.waterproof, enabled);
         }).Describe("Prevents drowning and suppresses swimming so gravity can settle the player on the sea floor.");
@@ -78,7 +89,38 @@ namespace Sick::Ui
             Notify(m_Callbacks.gracefulLanding, enabled);
         });
 
-        m_VehiclePage.AddLabel("No options yet");
+        m_VehiclePage.AddToggle("Vehicle God Mode", m_State.vehicleGodMode, [this](bool enabled) {
+            Notify(m_Callbacks.vehicleGodMode, enabled);
+        }).Describe("Keeps the vehicle you are using invincible while enabled.");
+        m_VehiclePage.AddToggle("Auto Repair", m_State.vehicleAutoRepair, [this](bool enabled) {
+            Notify(m_Callbacks.vehicleAutoRepair, enabled);
+        }).Describe("Periodically restores engine, body and fuel-tank health on the current vehicle.");
+        m_VehiclePage.AddToggle("Keep Vehicle Clean", m_State.vehicleKeepClean, [this](bool enabled) {
+            Notify(m_Callbacks.vehicleKeepClean, enabled);
+        }).Describe("Keeps the current vehicle's dirt level at zero.");
+        m_VehiclePage.AddToggle("Engine Always On", m_State.vehicleEngineAlwaysOn, [this](bool enabled) {
+            Notify(m_Callbacks.vehicleEngineAlwaysOn, enabled);
+        }).Describe("Keeps the current vehicle engine running without forcing it off when disabled.");
+        m_VehiclePage.AddToggle("No Gravity", m_State.vehicleNoGravity, [this](bool enabled) {
+            Notify(m_Callbacks.vehicleNoGravity, enabled);
+        }).Describe("Disables gravity on the current vehicle and restores it when the feature is released.");
+        m_VehiclePage.AddToggle("No Collision", m_State.vehicleNoCollision, [this](bool enabled) {
+            Notify(m_Callbacks.vehicleNoCollision, enabled);
+        }).Describe("Disables collision on the current vehicle while preserving its physics state.");
+        m_VehiclePage.AddSubmenu("Handling", m_HandlingPage)
+            .Describe("Opens the build-aware vehicle handling editor and saved handling profiles.");
+        m_VehiclePage.AddAction("Repair Vehicle", [this]() {
+            Notify(m_Callbacks.repairVehicle);
+        }).Describe("Repairs the current vehicle and restores its major health values once.");
+        m_VehiclePage.AddAction("Clean Vehicle", [this]() {
+            Notify(m_Callbacks.cleanVehicle);
+        }).Describe("Sets the current vehicle's dirt level to zero once.");
+        m_VehiclePage.AddAction("Put On Ground", [this]() {
+            Notify(m_Callbacks.putVehicleOnGround);
+        }).Describe("Places the current vehicle upright on all wheels using GTA's ground-placement native.");
+
+        BuildHandlingPages();
+
         m_WeaponsPage.AddLabel("No options yet");
         m_WorldPage.AddLabel("No options yet");
         m_TeleportPage.AddLabel("No options yet");
@@ -93,49 +135,127 @@ namespace Sick::Ui
         ApplyLayout();
     }
 
+    void SickMenu::BuildHandlingPages()
+    {
+        m_HandlingPage.AddInfo("Status", [this]() {
+            if (!m_State.handlingAvailable)
+                return std::string{"ADAPTER REQUIRED"};
+            if (!m_State.handlingVehicleAttached)
+                return std::string{"ENTER VEHICLE"};
+            return std::string{"READY"};
+        });
+        m_HandlingPage.AddSubmenu("General", m_HandlingGeneralPage)
+            .Describe("Mass, drag, submersion, centre of mass and inertia values.");
+        m_HandlingPage.AddSubmenu("Transmission", m_HandlingTransmissionPage)
+            .Describe("Drive bias, gears, drive force, clutch rates and top-speed handling values.");
+        m_HandlingPage.AddSubmenu("Brakes", m_HandlingBrakesPage)
+            .Describe("Service brake force, brake bias and hand-brake force.");
+        m_HandlingPage.AddSubmenu("Steering", m_HandlingSteeringPage)
+            .Describe("Steering-lock handling controls.");
+        m_HandlingPage.AddSubmenu("Traction", m_HandlingTractionPage)
+            .Describe("Tire grip curves, traction bias and traction-loss behavior.");
+        m_HandlingPage.AddSubmenu("Suspension", m_HandlingSuspensionPage)
+            .Describe("Spring force, damping, travel, ride height and suspension bias.");
+        m_HandlingPage.AddSubmenu("Anti-Roll Bars", m_HandlingAntiRollPage)
+            .Describe("Anti-roll force and front-to-rear anti-roll bias.");
+        m_HandlingPage.AddSubmenu("Roll Centre", m_HandlingRollCentrePage)
+            .Describe("Front and rear roll-centre height values.");
+        m_HandlingPage.AddSubmenu("Other", m_HandlingOtherPage)
+            .Describe("Collision, weapon, deformation and engine damage multipliers.");
+        m_HandlingPage.AddAction("Restore Original Handling", [this]() {
+            Notify(m_Callbacks.restoreOriginalHandling);
+        }).EnabledWhen([this]() {
+            return m_State.handlingAvailable && m_State.handlingVehicleAttached;
+        }).Describe("Restores the original handling values captured when the current vehicle was attached.");
+        m_HandlingPage.AddAction("Save Handling Profile", [this]() {
+            Notify(m_Callbacks.saveHandlingProfile);
+        }).EnabledWhen([this]() {
+            return m_State.handlingAvailable && m_State.handlingVehicleAttached;
+        }).Describe("Saves the current handling values to SickMenu/configs/handling on a background worker.");
+        m_HandlingPage.AddSubmenu("Saved Profiles", m_HandlingProfilesPage)
+            .Describe("Loads previously saved handling profiles without blocking the game thread.");
+
+        const auto pageFor = [this](Handling::Group group) -> MenuPage* {
+            switch (group)
+            {
+            case Handling::Group::General: return &m_HandlingGeneralPage;
+            case Handling::Group::Transmission: return &m_HandlingTransmissionPage;
+            case Handling::Group::Brakes: return &m_HandlingBrakesPage;
+            case Handling::Group::Steering: return &m_HandlingSteeringPage;
+            case Handling::Group::Traction: return &m_HandlingTractionPage;
+            case Handling::Group::Suspension: return &m_HandlingSuspensionPage;
+            case Handling::Group::AntiRoll: return &m_HandlingAntiRollPage;
+            case Handling::Group::RollCentre: return &m_HandlingRollCentrePage;
+            case Handling::Group::Other: return &m_HandlingOtherPage;
+            }
+            return nullptr;
+        };
+
+        for (const auto& spec : Handling::FieldSpecs)
+        {
+            auto* page = pageFor(spec.group);
+            if (!page)
+                continue;
+            const auto index = Handling::ToIndex(spec.field);
+            page->AddFloat(
+                spec.label,
+                m_State.handlingValues[index],
+                spec.minimum,
+                spec.maximum,
+                spec.step,
+                static_cast<int>(spec.precision),
+                [this, field = spec.field](float value) {
+                    Notify(m_Callbacks.handlingValue, field, value);
+                })
+                .EnabledWhen([this]() {
+                    return m_State.handlingAvailable && m_State.handlingVehicleAttached;
+                })
+                .Describe(spec.description);
+        }
+
+        RebuildHandlingProfiles();
+    }
+
+    void SickMenu::RebuildHandlingProfiles()
+    {
+        m_HandlingProfilesPage.Options().clear();
+        if (m_HandlingProfiles.empty())
+            m_HandlingProfilesPage.AddLabel("No handling profiles found");
+        else
+        {
+            for (const auto& profile : m_HandlingProfiles)
+            {
+                m_HandlingProfilesPage.AddAction(profile, [this, profile]() {
+                    Notify(m_Callbacks.loadHandlingProfile, profile);
+                }).EnabledWhen([this]() {
+                    return m_State.handlingAvailable && m_State.handlingVehicleAttached;
+                }).Describe("Loads this handling profile and applies changed fields in bounded game-thread batches.");
+            }
+        }
+        m_HandlingProfilesPage.AddAction("Reload Profiles", [this]() {
+            Notify(m_Callbacks.refreshHandlingProfiles);
+        }).Describe("Rescans SickMenu/configs/handling on a background worker.");
+    }
+
     void SickMenu::BuildSettingsPages()
     {
-        m_MenuSettingsPage.AddSubmenu("Themes", m_ThemesPage);
-        m_MenuSettingsPage.AddSubmenu("Image Loader", m_ImageLoaderPage);
-        m_MenuSettingsPage.AddSubmenu("Fonts", m_FontsPage);
-        m_MenuSettingsPage.AddSubmenu("Lua Scripts", m_ScriptsPage);
-        m_MenuSettingsPage.AddToggle("Move Menu", m_State.moveMode);
-        m_MenuSettingsPage.AddInteger(
-            "Menu Size",
-            m_State.menuScalePercent,
-            50,
-            250,
-            5,
-            [this](int) {
-                ApplyLayout();
-                NotifyPreferences();
-            });
-        m_MenuSettingsPage.AddSubmenu("Controls", m_ControlsPage);
-        m_MenuSettingsPage.AddAction("Save Configuration", [this]() {
+        MenuSettings::AddThemes(m_MenuSettingsPage, m_ThemesPage);
+        MenuSettings::AddImageLoader(m_MenuSettingsPage, m_ImageLoaderPage);
+        MenuSettings::AddFonts(m_MenuSettingsPage, m_FontsPage);
+        MenuSettings::AddLuaScripts(m_MenuSettingsPage, m_ScriptsPage);
+        MenuSettings::AddMoveMenu(m_MenuSettingsPage, m_State.moveMode);
+        MenuSettings::AddMenuSize(m_MenuSettingsPage, m_State.menuScalePercent, [this](int) {
+            ApplyLayout();
+            NotifyPreferences();
+        });
+        MenuSettings::AddControls(m_MenuSettingsPage, m_ControlsPage);
+        MenuSettings::AddSaveConfiguration(m_MenuSettingsPage, [this]() {
             NotifyPreferences();
             Notify(m_Callbacks.saveConfiguration);
         });
-        m_MenuSettingsPage.AddAction("Exit Menu", [this]() {
-            m_State.moveMode = false;
-            m_Controller.Close();
-        });
-        m_MenuSettingsPage.AddSubmenu("Exit GTA", m_ExitGtaPage);
-
-        m_ControlsPage.AddLabel("F4 - Open / Close");
-        m_ControlsPage.AddLabel("Numpad 8 - Up");
-        m_ControlsPage.AddLabel("Numpad 2 - Down");
-        m_ControlsPage.AddLabel("Numpad 4 - Left");
-        m_ControlsPage.AddLabel("Numpad 6 - Right");
-        m_ControlsPage.AddLabel("Numpad 5 - Select");
-        m_ControlsPage.AddLabel("Backspace - Back");
-
-        m_ExitGtaPage.AddLabel("Are you sure?");
-        m_ExitGtaPage.AddAction("Cancel", [this]() {
-            static_cast<void>(m_Controller.Handle(MenuInput::Back));
-        });
-        m_ExitGtaPage.AddAction("Exit GTA", [this]() {
+        MenuSettings::AddExitMenu(m_MenuSettingsPage, m_State.moveMode, m_Controller);
+        MenuSettings::AddExitGta(m_MenuSettingsPage, m_ExitGtaPage, m_Controller, [this]() {
             Notify(m_Callbacks.exitGta);
-            m_Controller.Close();
         });
     }
 
@@ -232,36 +352,15 @@ namespace Sick::Ui
         return m_Controller.Handle(input);
     }
 
-    void SickMenu::Open()
-    {
-        m_Controller.Open();
-    }
-
-    void SickMenu::Close() noexcept
-    {
-        m_State.moveMode = false;
-        m_Controller.Close();
-    }
-
-    void SickMenu::SetHeaderTexture(MenuTexture texture) noexcept
-    {
-        m_HeaderTexture = texture;
-    }
-
-    MenuTexture SickMenu::HeaderTexture() const noexcept
-    {
-        return m_HeaderTexture;
-    }
-
-    MenuDrawList SickMenu::Draw(MenuViewport viewport)
-    {
-        return m_Renderer.Render(m_Controller, viewport, m_HeaderTexture);
-    }
+    void SickMenu::Open() { m_Controller.Open(); }
+    void SickMenu::Close() noexcept { m_State.moveMode = false; m_Controller.Close(); }
+    void SickMenu::SetHeaderTexture(MenuTexture texture) noexcept { m_HeaderTexture = texture; }
+    MenuTexture SickMenu::HeaderTexture() const noexcept { return m_HeaderTexture; }
+    MenuDrawList SickMenu::Draw(MenuViewport viewport) { return m_Renderer.Render(m_Controller, viewport, m_HeaderTexture); }
 
     void SickMenu::SetPreferences(SickMenuPreferences preferences) noexcept
     {
-        m_State.menuScalePercent = std::clamp(
-            static_cast<int>(std::lround(preferences.scale * 100.0F)), 50, 250);
+        m_State.menuScalePercent = std::clamp(static_cast<int>(std::lround(preferences.scale * 100.0F)), 50, 250);
         m_State.menuLeft = preferences.left;
         m_State.menuTop = preferences.top;
         m_State.theme = std::move(preferences.theme);
@@ -290,6 +389,42 @@ namespace Sick::Ui
         m_Assets = std::move(catalog);
         RebuildAssetPages();
         ApplySelectedTheme();
+    }
+
+    void SickMenu::SetHandlingProfiles(std::uint64_t generation, std::vector<std::string> profiles)
+    {
+        if (generation == m_HandlingProfileGeneration)
+            return;
+        m_HandlingProfileGeneration = generation;
+        m_HandlingProfiles = std::move(profiles);
+        RebuildHandlingProfiles();
+
+        if (m_Controller.IsOpen() && m_Controller.CurrentPage() == &m_HandlingProfilesPage)
+        {
+            for (std::size_t index = 0; index < m_HandlingProfilesPage.Options().size(); ++index)
+            {
+                if (m_Controller.SelectOption(index))
+                    break;
+            }
+        }
+    }
+
+    bool SickMenu::IsHandlingPageActive() const noexcept
+    {
+        if (!m_Controller.IsOpen())
+            return false;
+        const auto* page = m_Controller.CurrentPage();
+        return page == &m_HandlingPage ||
+            page == &m_HandlingGeneralPage ||
+            page == &m_HandlingTransmissionPage ||
+            page == &m_HandlingBrakesPage ||
+            page == &m_HandlingSteeringPage ||
+            page == &m_HandlingTractionPage ||
+            page == &m_HandlingSuspensionPage ||
+            page == &m_HandlingAntiRollPage ||
+            page == &m_HandlingRollCentrePage ||
+            page == &m_HandlingOtherPage ||
+            page == &m_HandlingProfilesPage;
     }
 
     std::string SickMenu::SelectedBannerPath() const
@@ -354,13 +489,7 @@ namespace Sick::Ui
     {
         if (!m_Callbacks.preferencesChanged)
             return;
-        try
-        {
-            m_Callbacks.preferencesChanged(Preferences());
-        }
-        catch (...)
-        {
-        }
+        try { m_Callbacks.preferencesChanged(Preferences()); } catch (...) {}
     }
 
     const SickMenuAsset* SickMenu::FindAsset(

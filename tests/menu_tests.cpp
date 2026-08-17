@@ -84,22 +84,18 @@ namespace
         std::size_t godModeCallbacks{};
         std::size_t oxygenCallbacks{};
         std::size_t wantedCallbacks{};
+        std::size_t vehicleGodCallbacks{};
+        std::size_t repairCallbacks{};
         bool lastGodMode{};
         bool lastOxygen{};
+        bool lastVehicleGod{};
         int lastWanted{};
         Reaper::UI::SickMenuCallbacks callbacks{};
-        callbacks.godMode = [&godModeCallbacks, &lastGodMode](bool value) {
-            ++godModeCallbacks;
-            lastGodMode = value;
-        };
-        callbacks.infiniteOxygen = [&oxygenCallbacks, &lastOxygen](bool value) {
-            ++oxygenCallbacks;
-            lastOxygen = value;
-        };
-        callbacks.wantedLevel = [&wantedCallbacks, &lastWanted](int value) {
-            ++wantedCallbacks;
-            lastWanted = value;
-        };
+        callbacks.godMode = [&](bool value) { ++godModeCallbacks; lastGodMode = value; };
+        callbacks.infiniteOxygen = [&](bool value) { ++oxygenCallbacks; lastOxygen = value; };
+        callbacks.wantedLevel = [&](int value) { ++wantedCallbacks; lastWanted = value; };
+        callbacks.vehicleGodMode = [&](bool value) { ++vehicleGodCallbacks; lastVehicleGod = value; };
+        callbacks.repairVehicle = [&]() { ++repairCallbacks; };
 
         Reaper::UI::SickMenu menu{std::move(callbacks)};
         CHECK(menu.RootPage().Options().size() == 11);
@@ -124,19 +120,22 @@ namespace
         CHECK(playerOptions.size() == 15);
         CHECK(playerOptions[0].LabelText() == "GodMode");
         CHECK(playerOptions[1].LabelText() == "Infinite Oxygen");
-        CHECK(playerOptions[2].LabelText() == "No Ragdoll");
-        CHECK(playerOptions[3].LabelText() == "Super Jump");
-        CHECK(playerOptions[4].LabelText() == "Seat Belt");
-        CHECK(playerOptions[5].LabelText() == "No Wanted Level");
         CHECK(playerOptions[6].LabelText() == "Set Wanted Level");
-        CHECK(playerOptions[7].LabelText() == "Fast Run");
-        CHECK(playerOptions[8].LabelText() == "Fast Swim");
-        CHECK(playerOptions[9].LabelText() == "Keep Player Clean");
-        CHECK(playerOptions[10].LabelText() == "Aqualung");
-        CHECK(playerOptions[11].LabelText() == "No Gravity");
         CHECK(playerOptions[12].LabelText() == "Waterproof");
-        CHECK(playerOptions[13].LabelText() == "Beast Jump");
         CHECK(playerOptions[14].LabelText() == "Graceful Landing");
+
+        const auto& vehicleOptions = menu.VehiclePage().Options();
+        CHECK(vehicleOptions.size() == 10);
+        CHECK(vehicleOptions[0].LabelText() == "Vehicle God Mode");
+        CHECK(vehicleOptions[1].LabelText() == "Auto Repair");
+        CHECK(vehicleOptions[2].LabelText() == "Keep Vehicle Clean");
+        CHECK(vehicleOptions[3].LabelText() == "Engine Always On");
+        CHECK(vehicleOptions[4].LabelText() == "No Gravity");
+        CHECK(vehicleOptions[5].LabelText() == "No Collision");
+        CHECK(vehicleOptions[6].LabelText() == "Handling");
+        CHECK(vehicleOptions[7].LabelText() == "Repair Vehicle");
+        CHECK(vehicleOptions[8].LabelText() == "Clean Vehicle");
+        CHECK(vehicleOptions[9].LabelText() == "Put On Ground");
 
         CHECK(menu.Draw({1920.0F, 1080.0F}).Empty());
         menu.Open();
@@ -150,6 +149,7 @@ namespace
         const auto playerDraw = menu.Draw({1920.0F, 1080.0F});
         CHECK(HasText(playerDraw, "OFF", Sick::Ui::MenuTextAlign::Right));
         CHECK(HasText(playerDraw, "< 0 >", Sick::Ui::MenuTextAlign::Right));
+        CHECK(HasText(playerDraw, "Makes the local player invincible while enabled.", Sick::Ui::MenuTextAlign::Left));
         CHECK(CountKind(playerDraw, Sick::Ui::MenuDrawCommandKind::FilledCircle) >= 3);
 
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
@@ -171,9 +171,17 @@ namespace
         CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
         CHECK(menu.Controller().SelectOption(1));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
-        CHECK(menu.Controller().SelectionCounter().total == 0);
+        CHECK(menu.Controller().CurrentPage()->Title() == "VEHICLE");
+        CHECK(menu.Controller().SelectionCounter().total == 10);
         const auto vehicleDraw = menu.Draw({1920.0F, 1080.0F});
-        CHECK(HasText(vehicleDraw, "No options yet", Sick::Ui::MenuTextAlign::Center));
+        CHECK(HasText(vehicleDraw, "Keeps the vehicle you are using invincible while enabled.", Sick::Ui::MenuTextAlign::Left));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
+        CHECK(menu.State().vehicleGodMode);
+        CHECK(vehicleGodCallbacks == 1 && lastVehicleGod);
+        CHECK(menu.Controller().SelectOption(7));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
+        CHECK(repairCallbacks == 1);
+
         CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
         menu.SetHeaderTexture(0x1234U);
         CHECK(CountKind(menu.Draw({1920.0F, 1080.0F}), Sick::Ui::MenuDrawCommandKind::Image) == 1);
@@ -217,14 +225,7 @@ namespace
         CHECK(menu.FontsPage().Options().size() == 3);
         CHECK(menu.ScriptsPage().Options().size() == 2);
 
-        menu.SetPreferences({
-            .scale = 1.5F,
-            .left = 100.0F,
-            .top = 120.0F,
-            .theme = "Neon",
-            .banner = "sick-banner",
-            .font = "Segoe UI",
-        });
+        menu.SetPreferences({.scale = 1.5F, .left = 100.0F, .top = 120.0F, .theme = "Neon", .banner = "sick-banner", .font = "Segoe UI"});
         const Sick::Ui::MenuColor expectedAccent{10, 20, 30, 255};
         CHECK(menu.SelectedBannerPath() == "C:/SickMenu/images/sick-banner.png");
         CHECK(menu.SelectedFontPath() == "C:/Windows/Fonts/segoeui.ttf");
@@ -268,6 +269,12 @@ namespace
         backend.SetAqualung(true);
         backend.SetNoGravity(true);
         backend.SetWaterproof(true);
+        backend.SetVehicleGodMode(true);
+        backend.SetVehicleAutoRepair(true);
+        backend.SetVehicleKeepClean(true);
+        backend.SetVehicleEngineAlwaysOn(true);
+        backend.SetVehicleNoGravity(true);
+        backend.SetVehicleNoCollision(true);
 
         Sick::Frontend::FrontendCore frontend;
         frontend.Tick();
@@ -284,6 +291,12 @@ namespace
         CHECK(frontend.Menu().State().aqualung);
         CHECK(frontend.Menu().State().noGravity);
         CHECK(frontend.Menu().State().waterproof);
+        CHECK(frontend.Menu().State().vehicleGodMode);
+        CHECK(frontend.Menu().State().vehicleAutoRepair);
+        CHECK(frontend.Menu().State().vehicleKeepClean);
+        CHECK(frontend.Menu().State().vehicleEngineAlwaysOn);
+        CHECK(frontend.Menu().State().vehicleNoGravity);
+        CHECK(frontend.Menu().State().vehicleNoCollision);
 
         backend.SetGodMode(false);
         backend.SetInfiniteOxygen(false);
@@ -298,29 +311,27 @@ namespace
         backend.SetAqualung(false);
         backend.SetNoGravity(false);
         backend.SetWaterproof(false);
+        backend.SetVehicleGodMode(false);
+        backend.SetVehicleAutoRepair(false);
+        backend.SetVehicleKeepClean(false);
+        backend.SetVehicleEngineAlwaysOn(false);
+        backend.SetVehicleNoGravity(false);
+        backend.SetVehicleNoCollision(false);
         frontend.Tick();
         CHECK(!frontend.Menu().State().godMode);
         CHECK(!frontend.Menu().State().infiniteOxygen);
-        CHECK(!frontend.Menu().State().noRagdoll);
-        CHECK(!frontend.Menu().State().superJump);
-        CHECK(!frontend.Menu().State().seatBelt);
-        CHECK(!frontend.Menu().State().noWantedLevel);
-        CHECK(frontend.Menu().State().wantedLevel == 0);
-        CHECK(!frontend.Menu().State().fastRun);
-        CHECK(!frontend.Menu().State().fastSwim);
-        CHECK(!frontend.Menu().State().keepPlayerClean);
-        CHECK(!frontend.Menu().State().aqualung);
-        CHECK(!frontend.Menu().State().noGravity);
-        CHECK(!frontend.Menu().State().waterproof);
+        CHECK(!frontend.Menu().State().vehicleGodMode);
+        CHECK(!frontend.Menu().State().vehicleAutoRepair);
+        CHECK(!frontend.Menu().State().vehicleKeepClean);
+        CHECK(!frontend.Menu().State().vehicleEngineAlwaysOn);
+        CHECK(!frontend.Menu().State().vehicleNoGravity);
+        CHECK(!frontend.Menu().State().vehicleNoCollision);
         return true;
     }
 
     bool RunTests()
     {
-        return TestNavigationAndSubmenus() &&
-            TestSickMenuStructureAndRenderer() &&
-            TestSettingsAssetsAndMoveMode() &&
-            TestFrontendSynchronization();
+        return TestNavigationAndSubmenus() && TestSickMenuStructureAndRenderer() && TestSettingsAssetsAndMoveMode() && TestFrontendSynchronization();
     }
 }
 

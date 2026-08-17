@@ -17,10 +17,13 @@ add_library(sick_native STATIC
     src/backend/calls/GameCallHub.cpp
     src/backend/features/FeatureManager.cpp
     src/backend/features/player/PlayerFeatures.cpp
+    src/backend/features/vehicle/VehicleFeatures.cpp
+    src/backend/features/vehicle/handling/HandlingFeatures.cpp
     src/backend/system/AssetCatalog.cpp
     src/backend/system/BackgroundCore.cpp
     src/backend/system/ConfigManager.cpp
     src/backend/system/FileSystem.cpp
+    src/backend/system/HandlingProfileManager.cpp
     src/backend/system/IoService.cpp
     src/backend/system/Logger.cpp
     src/backend/system/LoggerApi.cpp
@@ -37,6 +40,7 @@ add_library(sick_native STATIC
     src/game/enhanced/NativeBootstrap.cpp
     src/game/enhanced/NativeTable.cpp
     src/game/enhanced/ScriptGlobal.cpp
+    src/game/handling/HandlingBackend.cpp
     src/game/natives/NativeHandlerTable.cpp
     src/game/natives/NativeRegistry.cpp
     src/game/natives/NativeResolver.cpp
@@ -47,6 +51,7 @@ add_library(sick_native STATIC
     src/game/scripts/ScriptPointer.cpp
     src/game/scripts/ScriptRuntime.cpp
     src/game/services/PlayerService.cpp
+    src/game/services/VehicleService.cpp
     src/ui/menu/Menu.cpp
     src/ui/menu/MenuRenderer.cpp
     src/ui/menu/SickMenu.cpp
@@ -172,6 +177,41 @@ if(SICK_NATIVE_BUILD_TESTS)
     target_compile_features(sick_menu_tests PRIVATE cxx_std_20)
     add_test(NAME sick_menu_tests COMMAND sick_menu_tests)
 
+    add_executable(vehicle_feature_tests
+        tests/vehicle_feature_tests.cpp
+    )
+    target_link_libraries(vehicle_feature_tests PRIVATE sick_native)
+    target_compile_features(vehicle_feature_tests PRIVATE cxx_std_20)
+    add_test(NAME vehicle_feature_tests COMMAND vehicle_feature_tests)
+
+    add_executable(handling_backend_tests
+        tests/handling_backend_tests.cpp
+    )
+    target_link_libraries(handling_backend_tests PRIVATE sick_native)
+    target_compile_features(handling_backend_tests PRIVATE cxx_std_20)
+    add_test(NAME handling_backend_tests COMMAND handling_backend_tests)
+
+    add_executable(handling_feature_tests
+        tests/handling_feature_tests.cpp
+    )
+    target_link_libraries(handling_feature_tests PRIVATE sick_native)
+    target_compile_features(handling_feature_tests PRIVATE cxx_std_20)
+    add_test(NAME handling_feature_tests COMMAND handling_feature_tests)
+
+    add_executable(handling_profile_tests
+        tests/handling_profile_tests.cpp
+    )
+    target_link_libraries(handling_profile_tests PRIVATE sick_native)
+    target_compile_features(handling_profile_tests PRIVATE cxx_std_20)
+    add_test(NAME handling_profile_tests COMMAND handling_profile_tests)
+
+    add_executable(handling_menu_tests
+        tests/handling_menu_tests.cpp
+    )
+    target_link_libraries(handling_menu_tests PRIVATE sick_native)
+    target_compile_features(handling_menu_tests PRIVATE cxx_std_20)
+    add_test(NAME handling_menu_tests COMMAND handling_menu_tests)
+
     add_executable(backend_tasking_tests
         tests/backend_tasking_tests.cpp
     )
@@ -200,6 +240,11 @@ if(SICK_NATIVE_BUILD_TESTS)
         script_function_tests
         enhanced_script_host_tests
         sick_menu_tests
+        vehicle_feature_tests
+        handling_backend_tests
+        handling_feature_tests
+        handling_profile_tests
+        handling_menu_tests
         backend_tasking_tests
         backend_config_tests
         background_system_tests

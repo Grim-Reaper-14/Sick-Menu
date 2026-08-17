@@ -76,6 +76,31 @@ namespace
         callbacks.aqualung = [](bool enabled) { Sick::Backend::BackendApi::Get().SetAqualung(enabled); };
         callbacks.noGravity = [](bool enabled) { Sick::Backend::BackendApi::Get().SetNoGravity(enabled); };
         callbacks.waterproof = [](bool enabled) { Sick::Backend::BackendApi::Get().SetWaterproof(enabled); };
+
+        callbacks.vehicleGodMode = [](bool enabled) { Sick::Backend::BackendApi::Get().SetVehicleGodMode(enabled); };
+        callbacks.vehicleAutoRepair = [](bool enabled) { Sick::Backend::BackendApi::Get().SetVehicleAutoRepair(enabled); };
+        callbacks.vehicleKeepClean = [](bool enabled) { Sick::Backend::BackendApi::Get().SetVehicleKeepClean(enabled); };
+        callbacks.vehicleEngineAlwaysOn = [](bool enabled) { Sick::Backend::BackendApi::Get().SetVehicleEngineAlwaysOn(enabled); };
+        callbacks.vehicleNoGravity = [](bool enabled) { Sick::Backend::BackendApi::Get().SetVehicleNoGravity(enabled); };
+        callbacks.vehicleNoCollision = [](bool enabled) { Sick::Backend::BackendApi::Get().SetVehicleNoCollision(enabled); };
+        callbacks.repairVehicle = [] { Sick::Backend::BackendApi::Get().RepairVehicle(); };
+        callbacks.cleanVehicle = [] { Sick::Backend::BackendApi::Get().CleanVehicle(); };
+        callbacks.putVehicleOnGround = [] { Sick::Backend::BackendApi::Get().PutVehicleOnGround(); };
+
+        callbacks.handlingValue = [](Sick::Handling::Field field, float value) {
+            Sick::Backend::BackendApi::Get().SetHandlingValue(field, value);
+        };
+        callbacks.restoreOriginalHandling = [] { Sick::Backend::BackendApi::Get().RestoreOriginalHandling(); };
+        callbacks.saveHandlingProfile = [] {
+            static_cast<void>(Sick::Backend::BackendApi::Get().SaveHandlingProfile());
+        };
+        callbacks.loadHandlingProfile = [](const std::string& name) {
+            static_cast<void>(Sick::Backend::BackendApi::Get().LoadHandlingProfile(name));
+        };
+        callbacks.refreshHandlingProfiles = [] {
+            static_cast<void>(Sick::Backend::BackendApi::Get().RefreshHandlingProfiles());
+        };
+
         callbacks.regularAction = [] { static_cast<void>(Sick::Backend::BackendApi::Get().RunScriptVmTest()); };
         callbacks.preferencesChanged = [](const Sick::Ui::SickMenuPreferences& preferences) {
             Sick::Backend::BackendApi::Get().SetPreferences({
@@ -105,7 +130,9 @@ namespace Sick::Frontend
     void FrontendCore::Tick() noexcept
     {
         auto& backend = Backend::BackendApi::Get();
+        backend.SetHandlingEditorActive(m_Menu.IsHandlingPageActive());
         const auto snapshot = backend.Snapshot();
+
         m_Menu.State().godMode = snapshot.player.godMode.requested;
         m_Menu.State().infiniteOxygen = snapshot.player.infiniteOxygen.requested;
         m_Menu.State().noRagdoll = snapshot.player.noRagdoll.requested;
@@ -119,6 +146,21 @@ namespace Sick::Frontend
         m_Menu.State().aqualung = snapshot.player.aqualung.requested;
         m_Menu.State().noGravity = snapshot.player.noGravity.requested;
         m_Menu.State().waterproof = snapshot.player.waterproof.requested;
+
+        m_Menu.State().vehicleGodMode = snapshot.vehicle.godMode.requested;
+        m_Menu.State().vehicleAutoRepair = snapshot.vehicle.autoRepair.requested;
+        m_Menu.State().vehicleKeepClean = snapshot.vehicle.keepClean.requested;
+        m_Menu.State().vehicleEngineAlwaysOn = snapshot.vehicle.engineAlwaysOn.requested;
+        m_Menu.State().vehicleNoGravity = snapshot.vehicle.noGravity.requested;
+        m_Menu.State().vehicleNoCollision = snapshot.vehicle.noCollision.requested;
+
+        m_Menu.State().handlingAvailable = snapshot.handling.backendAvailable;
+        m_Menu.State().handlingVehicleAttached = snapshot.handling.vehicleAttached;
+        if (snapshot.handling.revision != m_HandlingRevision)
+        {
+            m_HandlingRevision = snapshot.handling.revision;
+            m_Menu.State().handlingValues = snapshot.handling.values;
+        }
 
         if (!m_PreferencesLoaded && snapshot.initialized)
         {
@@ -134,12 +176,20 @@ namespace Sick::Frontend
             m_PreferencesLoaded = true;
         }
 
-        const auto generation = backend.AssetGeneration();
-        if (generation != 0 && generation != m_AssetGeneration)
+        const auto assetGeneration = backend.AssetGeneration();
+        if (assetGeneration != 0 && assetGeneration != m_AssetGeneration)
         {
             auto catalog = ConvertCatalog(backend.Assets());
             m_AssetGeneration = catalog.generation;
             m_Menu.SetAssetCatalog(std::move(catalog));
+        }
+
+        const auto handlingProfileGeneration = backend.HandlingProfileGeneration();
+        if (handlingProfileGeneration != 0 && handlingProfileGeneration != m_HandlingProfileGeneration)
+        {
+            auto profiles = backend.HandlingProfiles();
+            m_HandlingProfileGeneration = profiles.generation;
+            m_Menu.SetHandlingProfiles(profiles.generation, std::move(profiles.names));
         }
     }
 }
