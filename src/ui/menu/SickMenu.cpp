@@ -1,5 +1,6 @@
 #include "SickMenu.hpp"
 
+#include "categories/online_vehicle_spawner/VehicleCatalog.hpp"
 #include "categories/menu_settings/Controls.hpp"
 #include "categories/menu_settings/ExitGta.hpp"
 #include "categories/menu_settings/ExitMenu.hpp"
@@ -127,12 +128,44 @@ namespace Sick::Ui
         m_TunablesPage.AddLabel("No options yet");
         m_UnlocksPage.AddLabel("No options yet");
         m_OnlineServicesPage.AddLabel("No options yet");
-        m_OnlineVehicleSpawnerPage.AddLabel("No options yet");
+        BuildVehicleSpawnerPages();
         m_OnlineProtectionPage.AddLabel("No options yet");
 
         BuildSettingsPages();
         RebuildAssetPages();
         ApplyLayout();
+    }
+
+    void SickMenu::BuildVehicleSpawnerPages()
+    {
+        m_OnlineVehicleSpawnerPage.AddInfo("Status", [this]() {
+            return m_State.vehicleSpawnerStatus;
+        });
+        m_OnlineVehicleSpawnerPage.AddToggle("Enter After Spawn", m_State.vehicleSpawnerEnterVehicle)
+            .Describe("Places the local player in the driver seat after a successful spawn.");
+
+        for (const auto category : OnlineVehicleSpawner::Categories)
+        {
+            auto page = std::make_unique<MenuPage>(
+                std::string{"SPAWNER / "} + std::string{category});
+
+            for (const auto& entry : OnlineVehicleSpawner::Vehicles)
+            {
+                if (entry.category != category)
+                    continue;
+
+                const auto model = entry.model;
+                page->AddAction(std::string{entry.label}, [this, model]() {
+                    Notify(m_Callbacks.spawnVehicle, model, m_State.vehicleSpawnerEnterVehicle);
+                }).EnabledWhen([this]() {
+                    return !m_State.vehicleSpawnerBusy;
+                }).Describe(std::string{"Spawns vehicle model: "} + std::string{model});
+            }
+
+            auto& categoryPage = m_VehicleSpawnerCategoryPages[std::string{category}];
+            categoryPage = std::move(page);
+            m_OnlineVehicleSpawnerPage.AddSubmenu(std::string{category}, *categoryPage);
+        }
     }
 
     void SickMenu::BuildHandlingPages()

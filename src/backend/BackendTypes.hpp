@@ -42,6 +42,25 @@ namespace Sick::Backend
         ToggleFeatureSnapshot noCollision;
     };
 
+    enum class VehicleSpawnerState : std::uint8_t
+    {
+        Idle,
+        Queued,
+        Loading,
+        Spawned,
+        NativeUnavailable,
+        InvalidModel,
+        TimedOut,
+        Failed,
+    };
+
+    struct VehicleSpawnerSnapshot
+    {
+        VehicleSpawnerState state{VehicleSpawnerState::Idle};
+        std::uint32_t modelHash{};
+        bool busy{};
+    };
+
     struct HandlingFeatureSnapshot
     {
         bool backendAvailable{};
@@ -119,6 +138,7 @@ namespace Sick::Backend
         bool scriptReady{};
         PlayerFeatureSnapshot player;
         VehicleFeatureSnapshot vehicle;
+        VehicleSpawnerSnapshot vehicleSpawner;
         HandlingFeatureSnapshot handling;
         BackendQueueSnapshot queues;
         BackendPerformanceSnapshot performance;

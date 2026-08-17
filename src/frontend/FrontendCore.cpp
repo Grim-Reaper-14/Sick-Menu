@@ -60,6 +60,23 @@ namespace
         return result;
     }
 
+    const char* VehicleSpawnerStatusText(Sick::Backend::VehicleSpawnerState state) noexcept
+    {
+        using State = Sick::Backend::VehicleSpawnerState;
+        switch (state)
+        {
+        case State::Idle: return "READY";
+        case State::Queued: return "QUEUED";
+        case State::Loading: return "LOADING MODEL";
+        case State::Spawned: return "SPAWNED";
+        case State::NativeUnavailable: return "NATIVE BACKEND UNAVAILABLE";
+        case State::InvalidModel: return "INVALID VEHICLE MODEL";
+        case State::TimedOut: return "MODEL LOAD TIMED OUT";
+        case State::Failed: return "SPAWN FAILED";
+        }
+        return "UNKNOWN";
+    }
+
     Sick::Ui::SickMenuCallbacks MakeCallbacks()
     {
         Sick::Ui::SickMenuCallbacks callbacks{};
@@ -86,6 +103,9 @@ namespace
         callbacks.repairVehicle = [] { Sick::Backend::BackendApi::Get().RepairVehicle(); };
         callbacks.cleanVehicle = [] { Sick::Backend::BackendApi::Get().CleanVehicle(); };
         callbacks.putVehicleOnGround = [] { Sick::Backend::BackendApi::Get().PutVehicleOnGround(); };
+        callbacks.spawnVehicle = [](std::string_view modelName, bool enterVehicle) {
+            static_cast<void>(Sick::Backend::BackendApi::Get().SpawnVehicle(modelName, enterVehicle));
+        };
 
         callbacks.handlingValue = [](Sick::Handling::Field field, float value) {
             Sick::Backend::BackendApi::Get().SetHandlingValue(field, value);
@@ -153,6 +173,8 @@ namespace Sick::Frontend
         m_Menu.State().vehicleEngineAlwaysOn = snapshot.vehicle.engineAlwaysOn.requested;
         m_Menu.State().vehicleNoGravity = snapshot.vehicle.noGravity.requested;
         m_Menu.State().vehicleNoCollision = snapshot.vehicle.noCollision.requested;
+        m_Menu.State().vehicleSpawnerBusy = snapshot.vehicleSpawner.busy;
+        m_Menu.State().vehicleSpawnerStatus = VehicleSpawnerStatusText(snapshot.vehicleSpawner.state);
 
         m_Menu.State().handlingAvailable = snapshot.handling.backendAvailable;
         m_Menu.State().handlingVehicleAttached = snapshot.handling.vehicleAttached;

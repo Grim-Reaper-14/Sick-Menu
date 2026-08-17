@@ -38,6 +38,15 @@ namespace Sick::Game::Natives::Generated
         0x45F6D8EEF34ABEF1ULL,
         0xB77D05AC8C78AADBULL,
         0x70DB57649FA8D0D8ULL,
+        0x3FEF770D40960D5AULL,
+        0xE83D4F9BA2A38914ULL,
+        0x35B9E0803292B641ULL,
+        0x19AAC8F07BFEC53EULL,
+        0x963D27A58DF860ACULL,
+        0x98A4EB5D89A0C952ULL,
+        0xE532F5D78798DAABULL,
+        0xAF35D0D2583051B0ULL,
+        0xF75B0D629E1C063DULL,
     };
 
     [[nodiscard]] constexpr NativeHash HashFor(NativeIndex index) noexcept

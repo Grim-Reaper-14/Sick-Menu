@@ -39,6 +39,15 @@ namespace Sick::Game::Natives
         inline constexpr NativeHash SET_VEHICLE_ENGINE_HEALTH = Generated::HashFor(NativeIndex::SET_VEHICLE_ENGINE_HEALTH);
         inline constexpr NativeHash SET_VEHICLE_BODY_HEALTH = Generated::HashFor(NativeIndex::SET_VEHICLE_BODY_HEALTH);
         inline constexpr NativeHash SET_VEHICLE_PETROL_TANK_HEALTH = Generated::HashFor(NativeIndex::SET_VEHICLE_PETROL_TANK_HEALTH);
+        inline constexpr NativeHash GET_ENTITY_COORDS = Generated::HashFor(NativeIndex::GET_ENTITY_COORDS);
+        inline constexpr NativeHash GET_ENTITY_HEADING = Generated::HashFor(NativeIndex::GET_ENTITY_HEADING);
+        inline constexpr NativeHash IS_MODEL_IN_CDIMAGE = Generated::HashFor(NativeIndex::IS_MODEL_IN_CDIMAGE);
+        inline constexpr NativeHash IS_MODEL_A_VEHICLE = Generated::HashFor(NativeIndex::IS_MODEL_A_VEHICLE);
+        inline constexpr NativeHash REQUEST_MODEL = Generated::HashFor(NativeIndex::REQUEST_MODEL);
+        inline constexpr NativeHash HAS_MODEL_LOADED = Generated::HashFor(NativeIndex::HAS_MODEL_LOADED);
+        inline constexpr NativeHash SET_MODEL_AS_NO_LONGER_NEEDED = Generated::HashFor(NativeIndex::SET_MODEL_AS_NO_LONGER_NEEDED);
+        inline constexpr NativeHash CREATE_VEHICLE = Generated::HashFor(NativeIndex::CREATE_VEHICLE);
+        inline constexpr NativeHash SET_PED_INTO_VEHICLE = Generated::HashFor(NativeIndex::SET_PED_INTO_VEHICLE);
     }
 
     namespace PLAYER
@@ -135,6 +144,11 @@ namespace Sick::Game::Natives
         {
             return NativeInvoker::Invoke<NativeIndex::GET_VEHICLE_PED_IS_IN, Vehicle, false>(ped, includeEntering);
         }
+
+        inline void SET_PED_INTO_VEHICLE(Ped ped, Vehicle vehicle, int seatIndex) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_PED_INTO_VEHICLE, void, false>(ped, vehicle, seatIndex);
+        }
     }
 
     namespace ENTITY
@@ -164,10 +178,61 @@ namespace Sick::Game::Natives
         {
             NativeInvoker::Invoke<NativeIndex::SET_ENTITY_COLLISION, void, false>(entity, enabled, keepPhysics);
         }
+
+        [[nodiscard]] inline ScriptVector GET_ENTITY_COORDS(Entity entity, bool alive) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::GET_ENTITY_COORDS, ScriptVector, false>(entity, alive);
+        }
+
+        [[nodiscard]] inline float GET_ENTITY_HEADING(Entity entity) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::GET_ENTITY_HEADING, float, false>(entity);
+        }
+    }
+
+    namespace STREAMING
+    {
+        [[nodiscard]] inline bool IS_MODEL_IN_CDIMAGE(Hash model) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::IS_MODEL_IN_CDIMAGE, bool, false>(model);
+        }
+
+        [[nodiscard]] inline bool IS_MODEL_A_VEHICLE(Hash model) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::IS_MODEL_A_VEHICLE, bool, false>(model);
+        }
+
+        inline void REQUEST_MODEL(Hash model) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::REQUEST_MODEL, void, false>(model);
+        }
+
+        [[nodiscard]] inline bool HAS_MODEL_LOADED(Hash model) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::HAS_MODEL_LOADED, bool, false>(model);
+        }
+
+        inline void SET_MODEL_AS_NO_LONGER_NEEDED(Hash model) noexcept
+        {
+            NativeInvoker::Invoke<NativeIndex::SET_MODEL_AS_NO_LONGER_NEEDED, void, false>(model);
+        }
     }
 
     namespace VEHICLE
     {
+        [[nodiscard]] inline Vehicle CREATE_VEHICLE(
+            Hash modelHash,
+            float x,
+            float y,
+            float z,
+            float heading,
+            bool isNetwork,
+            bool netMissionEntity) noexcept
+        {
+            return NativeInvoker::Invoke<NativeIndex::CREATE_VEHICLE, Vehicle, false>(
+                modelHash, x, y, z, heading, isNetwork, netMissionEntity);
+        }
+
         inline void SET_VEHICLE_FIXED(Vehicle vehicle) noexcept
         {
             NativeInvoker::Invoke<NativeIndex::SET_VEHICLE_FIXED, void, false>(vehicle);

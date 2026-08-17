@@ -53,6 +53,15 @@ namespace Sick::Game::Natives
         Register({Hashes::SET_VEHICLE_ENGINE_HEALTH, "SET_VEHICLE_ENGINE_HEALTH", "VEHICLE", 2, false});
         Register({Hashes::SET_VEHICLE_BODY_HEALTH, "SET_VEHICLE_BODY_HEALTH", "VEHICLE", 2, false});
         Register({Hashes::SET_VEHICLE_PETROL_TANK_HEALTH, "SET_VEHICLE_PETROL_TANK_HEALTH", "VEHICLE", 2, false});
+        Register({Hashes::GET_ENTITY_COORDS, "GET_ENTITY_COORDS", "ENTITY", 2, false});
+        Register({Hashes::GET_ENTITY_HEADING, "GET_ENTITY_HEADING", "ENTITY", 1, false});
+        Register({Hashes::IS_MODEL_IN_CDIMAGE, "IS_MODEL_IN_CDIMAGE", "STREAMING", 1, false});
+        Register({Hashes::IS_MODEL_A_VEHICLE, "IS_MODEL_A_VEHICLE", "STREAMING", 1, false});
+        Register({Hashes::REQUEST_MODEL, "REQUEST_MODEL", "STREAMING", 1, false});
+        Register({Hashes::HAS_MODEL_LOADED, "HAS_MODEL_LOADED", "STREAMING", 1, false});
+        Register({Hashes::SET_MODEL_AS_NO_LONGER_NEEDED, "SET_MODEL_AS_NO_LONGER_NEEDED", "STREAMING", 1, false});
+        Register({Hashes::CREATE_VEHICLE, "CREATE_VEHICLE", "VEHICLE", 7, false});
+        Register({Hashes::SET_PED_INTO_VEHICLE, "SET_PED_INTO_VEHICLE", "PED", 3, false});
     }
 
     void NativeRegistry::Clear()

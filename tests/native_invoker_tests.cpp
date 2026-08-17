@@ -30,6 +30,14 @@ namespace
         assert(!context->GetArgument<bool>(2));
     }
 
+    void EntityCoordsHandler(NativeCallContext* context)
+    {
+        assert(context->ArgumentCount() == 2);
+        assert(context->GetArgument<Entity>(0) == 42);
+        assert(!context->GetArgument<bool>(1));
+        context->SetResult<ScriptVector>({1.0F, 2.0F, 3.0F});
+    }
+
     NativeHandler ResolveForTest(NativeHash hash)
     {
         ++g_ResolveCalls;
@@ -42,6 +50,8 @@ namespace
             return &PlayerIdHandler;
         case Hashes::SET_ENTITY_INVINCIBLE:
             return &SetInvincibleHandler;
+        case Hashes::GET_ENTITY_COORDS:
+            return &EntityCoordsHandler;
         default:
             return nullptr;
         }
@@ -66,10 +76,16 @@ int main()
     assert(g_LastInvincible);
     assert(g_ResolveCalls == 3);
 
+    const auto coords = Sick::Game::Natives::ENTITY::GET_ENTITY_COORDS(42, false);
+    assert(coords.x == 1.0F);
+    assert(coords.y == 2.0F);
+    assert(coords.z == 3.0F);
+    assert(g_ResolveCalls == 4);
+
     constexpr Sick::Game::NativeHash missing = 0x1111222233334444ULL;
     const auto missingResult = Sick::Game::Natives::NativeInvoker::TryCall<std::int32_t>(missing);
     assert(!missingResult.has_value());
-    assert(g_ResolveCalls == 4);
+    assert(g_ResolveCalls == 5);
 
     resolver.RegisterOverride(Sick::Game::Natives::Hashes::PLAYER_ID, &PlayerPedHandler);
     assert(Sick::Game::Natives::PLAYER::PLAYER_ID() == 1337);

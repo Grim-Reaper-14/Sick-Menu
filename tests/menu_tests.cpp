@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <iostream>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -86,16 +87,24 @@ namespace
         std::size_t wantedCallbacks{};
         std::size_t vehicleGodCallbacks{};
         std::size_t repairCallbacks{};
+        std::size_t spawnVehicleCallbacks{};
         bool lastGodMode{};
         bool lastOxygen{};
         bool lastVehicleGod{};
+        bool lastSpawnEnter{};
         int lastWanted{};
+        std::string lastSpawnModel;
         Reaper::UI::SickMenuCallbacks callbacks{};
         callbacks.godMode = [&](bool value) { ++godModeCallbacks; lastGodMode = value; };
         callbacks.infiniteOxygen = [&](bool value) { ++oxygenCallbacks; lastOxygen = value; };
         callbacks.wantedLevel = [&](int value) { ++wantedCallbacks; lastWanted = value; };
         callbacks.vehicleGodMode = [&](bool value) { ++vehicleGodCallbacks; lastVehicleGod = value; };
         callbacks.repairVehicle = [&]() { ++repairCallbacks; };
+        callbacks.spawnVehicle = [&](std::string_view modelName, bool enterVehicle) {
+            ++spawnVehicleCallbacks;
+            lastSpawnModel = modelName;
+            lastSpawnEnter = enterVehicle;
+        };
 
         Reaper::UI::SickMenu menu{std::move(callbacks)};
         CHECK(menu.RootPage().Options().size() == 11);
@@ -182,6 +191,27 @@ namespace
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
         CHECK(repairCallbacks == 1);
 
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
+        CHECK(menu.Controller().SelectOption(8));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
+        CHECK(menu.Controller().CurrentPage()->Title() == "ONLINE VEHICLE SPAWNER");
+        CHECK(menu.Controller().SelectionCounter().total == 8);
+        const auto& spawnerOptions = menu.OnlineVehicleSpawnerPage().Options();
+        CHECK(spawnerOptions.size() == 9);
+        CHECK(spawnerOptions[0].LabelText() == "Status");
+        CHECK(spawnerOptions[1].LabelText() == "Enter After Spawn");
+        CHECK(spawnerOptions[2].LabelText() == "Super");
+        CHECK(spawnerOptions[8].LabelText() == "Motorcycles");
+        CHECK(menu.Controller().SelectOption(2));
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
+        CHECK(menu.Controller().CurrentPage()->Title() == "SPAWNER / Super");
+        CHECK(menu.Controller().SelectionCounter().total == 8);
+        CHECK(menu.Controller().CurrentPage()->Options()[0].LabelText() == "Adder");
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
+        CHECK(spawnVehicleCallbacks == 1);
+        CHECK(lastSpawnModel == "adder");
+        CHECK(lastSpawnEnter);
+        CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
         menu.SetHeaderTexture(0x1234U);
         CHECK(CountKind(menu.Draw({1920.0F, 1080.0F}), Sick::Ui::MenuDrawCommandKind::Image) == 1);

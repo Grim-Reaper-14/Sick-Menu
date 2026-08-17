@@ -60,6 +60,7 @@ namespace Sick::Backend
         m_CallHub.Reset();
         m_Features.Reset();
         m_Fibers.Clear();
+        m_VehicleSpawner.Reset();
         m_NativeReady.store(false, std::memory_order_release);
         m_ScriptReady.store(false, std::memory_order_release);
         m_Performance.Reset();
@@ -135,6 +136,27 @@ namespace Sick::Backend
     void BackendCore::CleanVehicle() noexcept { m_Features.CleanVehicle(); }
     void BackendCore::PutVehicleOnGround() noexcept { m_Features.PutVehicleOnGround(); }
 
+    bool BackendCore::SpawnVehicle(std::string_view modelName, bool enterVehicle)
+    {
+        const auto modelHash = Features::OnlineVehicleSpawner::VehicleSpawner::HashModelName(modelName);
+        if (!m_NativeReady.load(std::memory_order_acquire))
+        {
+            m_VehicleSpawner.Reject(modelHash, VehicleSpawnerState::NativeUnavailable);
+            return false;
+        }
+        if (!m_VehicleSpawner.TryQueue(modelHash))
+            return false;
+
+        if (!QueueFiber([this, modelHash, enterVehicle]() {
+                m_VehicleSpawner.Spawn(modelHash, enterVehicle);
+            }))
+        {
+            m_VehicleSpawner.QueueFailed();
+            return false;
+        }
+        return true;
+    }
+
     void BackendCore::SetHandlingEditorActive(bool active) noexcept { m_Features.SetHandlingEditorActive(active); }
     void BackendCore::SetHandlingValue(Handling::Field field, float value) noexcept { m_Features.SetHandlingValue(field, value); }
     void BackendCore::RestoreOriginalHandling() noexcept { m_Features.RestoreOriginalHandling(); }
@@ -205,6 +227,7 @@ namespace Sick::Backend
     {
         const auto player = m_Features.PlayerSnapshot();
         const auto vehicle = m_Features.VehicleSnapshot();
+        const auto vehicleSpawner = m_VehicleSpawner.Snapshot();
         const auto handling = m_Features.HandlingSnapshot();
         const auto performance = m_Performance.Snapshot();
         const auto background = m_Background.Snapshot();
@@ -214,6 +237,7 @@ namespace Sick::Backend
             .scriptReady = m_ScriptReady.load(std::memory_order_acquire),
             .player = player,
             .vehicle = vehicle,
+            .vehicleSpawner = vehicleSpawner,
             .handling = handling,
             .queues = {
                 .gameCalls = m_CallHub.Pending(),

@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -82,6 +83,9 @@ namespace Sick::Ui
         bool vehicleEngineAlwaysOn{};
         bool vehicleNoGravity{};
         bool vehicleNoCollision{};
+        bool vehicleSpawnerEnterVehicle{true};
+        bool vehicleSpawnerBusy{};
+        std::string vehicleSpawnerStatus{"READY"};
 
         bool handlingAvailable{};
         bool handlingVehicleAttached{};
@@ -126,6 +130,7 @@ namespace Sick::Ui
         std::function<void()> repairVehicle;
         std::function<void()> cleanVehicle;
         std::function<void()> putVehicleOnGround;
+        std::function<void(std::string_view, bool)> spawnVehicle;
 
         std::function<void(Handling::Field, float)> handlingValue;
         std::function<void()> restoreOriginalHandling;
@@ -215,6 +220,7 @@ namespace Sick::Ui
         [[nodiscard]] const MenuPage& SelfPage() const noexcept;
 
     private:
+        void BuildVehicleSpawnerPages();
         void BuildHandlingPages();
         void RebuildHandlingProfiles();
         void BuildSettingsPages();
@@ -262,6 +268,7 @@ namespace Sick::Ui
         MenuPage m_ScriptsPage{"LUA SCRIPTS"};
         MenuPage m_ControlsPage{"CONTROLS"};
         MenuPage m_ExitGtaPage{"EXIT GTA"};
+        std::unordered_map<std::string, std::unique_ptr<MenuPage>> m_VehicleSpawnerCategoryPages;
         std::unordered_map<std::string, std::unique_ptr<MenuPage>> m_ScriptDetailPages;
         MenuController m_Controller;
         MenuRenderer m_Renderer;

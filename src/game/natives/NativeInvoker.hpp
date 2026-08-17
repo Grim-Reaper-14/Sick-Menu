@@ -51,7 +51,7 @@ namespace Sick::Game::Natives
             if constexpr (!std::is_void_v<Return>)
             {
                 static_assert(std::is_trivially_copyable_v<Return>);
-                static_assert(sizeof(Return) <= sizeof(std::uint64_t));
+                static_assert(sizeof(Return) <= NativeCallContext::MaxReturnBytes);
                 return frame.GetResult<Return>();
             }
         }
@@ -61,7 +61,7 @@ namespace Sick::Game::Natives
         {
             static_assert(!std::is_void_v<Return>);
             static_assert(std::is_trivially_copyable_v<Return>);
-            static_assert(sizeof(Return) <= sizeof(std::uint64_t));
+            static_assert(sizeof(Return) <= NativeCallContext::MaxReturnBytes);
 
             NativeCallFrame frame;
             const bool pushed = (frame.Push(std::forward<Args>(args)) && ... && true);
@@ -121,7 +121,7 @@ namespace Sick::Game::Natives
             if constexpr (!std::is_void_v<Return>)
             {
                 static_assert(std::is_trivially_copyable_v<Return>);
-                static_assert(sizeof(Return) <= sizeof(std::uint64_t));
+                static_assert(sizeof(Return) <= NativeCallContext::MaxReturnBytes);
                 return frame.GetResult<Return>();
             }
         }
@@ -131,7 +131,7 @@ namespace Sick::Game::Natives
         {
             static_assert(!std::is_void_v<Return>);
             static_assert(std::is_trivially_copyable_v<Return>);
-            static_assert(sizeof(Return) <= sizeof(std::uint64_t));
+            static_assert(sizeof(Return) <= NativeCallContext::MaxReturnBytes);
 
             NativeCallFrame frame;
             const bool pushed = (frame.Push(std::forward<Args>(args)) && ... && true);

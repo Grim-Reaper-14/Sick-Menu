@@ -37,6 +37,15 @@ namespace Sick::Game::Natives
         SET_VEHICLE_ENGINE_HEALTH,
         SET_VEHICLE_BODY_HEALTH,
         SET_VEHICLE_PETROL_TANK_HEALTH,
+        GET_ENTITY_COORDS,
+        GET_ENTITY_HEADING,
+        IS_MODEL_IN_CDIMAGE,
+        IS_MODEL_A_VEHICLE,
+        REQUEST_MODEL,
+        HAS_MODEL_LOADED,
+        SET_MODEL_AS_NO_LONGER_NEEDED,
+        CREATE_VEHICLE,
+        SET_PED_INTO_VEHICLE,
         Count
     };
 

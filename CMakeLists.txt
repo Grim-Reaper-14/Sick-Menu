@@ -16,6 +16,7 @@ add_library(sick_native STATIC
     src/backend/BackendCore.cpp
     src/backend/calls/GameCallHub.cpp
     src/backend/features/FeatureManager.cpp
+    src/backend/features/online_vehicle_spawner/VehicleSpawner.cpp
     src/backend/features/player/PlayerFeatures.cpp
     src/backend/features/vehicle/VehicleFeatures.cpp
     src/backend/features/vehicle/handling/HandlingFeatures.cpp
@@ -51,6 +52,7 @@ add_library(sick_native STATIC
     src/game/scripts/ScriptPointer.cpp
     src/game/scripts/ScriptRuntime.cpp
     src/game/services/PlayerService.cpp
+    src/game/services/VehicleSpawnerService.cpp
     src/game/services/VehicleService.cpp
     src/ui/menu/Menu.cpp
     src/ui/menu/MenuRenderer.cpp
@@ -184,6 +186,13 @@ if(SICK_NATIVE_BUILD_TESTS)
     target_compile_features(vehicle_feature_tests PRIVATE cxx_std_20)
     add_test(NAME vehicle_feature_tests COMMAND vehicle_feature_tests)
 
+    add_executable(vehicle_spawner_tests
+        tests/vehicle_spawner_tests.cpp
+    )
+    target_link_libraries(vehicle_spawner_tests PRIVATE sick_native)
+    target_compile_features(vehicle_spawner_tests PRIVATE cxx_std_20)
+    add_test(NAME vehicle_spawner_tests COMMAND vehicle_spawner_tests)
+
     add_executable(handling_backend_tests
         tests/handling_backend_tests.cpp
     )
@@ -241,6 +250,7 @@ if(SICK_NATIVE_BUILD_TESTS)
         enhanced_script_host_tests
         sick_menu_tests
         vehicle_feature_tests
+        vehicle_spawner_tests
         handling_backend_tests
         handling_feature_tests
         handling_profile_tests

@@ -31,6 +31,8 @@ namespace Sick::Game::Natives
     class NativeCallContext
     {
     public:
+        static constexpr std::size_t MaxReturnBytes = 16 * sizeof(std::uint64_t);
+
         void Reset() noexcept
         {
             m_ArgumentCount = 0;
@@ -78,7 +80,7 @@ namespace Sick::Game::Natives
         [[nodiscard]] T GetResult() const noexcept
         {
             static_assert(std::is_trivially_copyable_v<T>);
-            static_assert(sizeof(T) <= sizeof(std::uint64_t));
+            static_assert(sizeof(T) <= MaxReturnBytes);
 
             T value{};
             std::memcpy(&value, m_ReturnValue, sizeof(T));
@@ -89,7 +91,7 @@ namespace Sick::Game::Natives
         void SetResult(const T& value) noexcept
         {
             static_assert(std::is_trivially_copyable_v<T>);
-            static_assert(sizeof(T) <= sizeof(std::uint64_t));
+            static_assert(sizeof(T) <= MaxReturnBytes);
             std::memcpy(m_ReturnValue, &value, sizeof(T));
         }
 

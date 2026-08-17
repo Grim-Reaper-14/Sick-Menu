@@ -3,6 +3,7 @@
 #include "BackendTypes.hpp"
 #include "backend/calls/GameCallHub.hpp"
 #include "backend/features/FeatureManager.hpp"
+#include "backend/features/online_vehicle_spawner/VehicleSpawner.hpp"
 #include "backend/system/BackgroundCore.hpp"
 #include "backend/system/PerformanceMonitor.hpp"
 #include "backend/tasking/GameFiberScheduler.hpp"
@@ -53,6 +54,7 @@ namespace Sick::Backend
         void RepairVehicle() noexcept;
         void CleanVehicle() noexcept;
         void PutVehicleOnGround() noexcept;
+        [[nodiscard]] bool SpawnVehicle(std::string_view modelName, bool enterVehicle);
 
         void SetHandlingEditorActive(bool active) noexcept;
         void SetHandlingValue(Handling::Field field, float value) noexcept;
@@ -85,6 +87,7 @@ namespace Sick::Backend
 
         Calls::GameCallHub m_CallHub;
         Features::FeatureManager m_Features;
+        Features::OnlineVehicleSpawner::VehicleSpawner m_VehicleSpawner;
         Tasking::GameFiberScheduler m_Fibers;
         System::BackgroundCore m_Background;
         System::PerformanceMonitor m_Performance;
