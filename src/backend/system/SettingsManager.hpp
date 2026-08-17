@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <string>
 
 namespace Sick::Backend::System
 {
@@ -20,8 +21,13 @@ namespace Sick::Backend::System
     struct FrontendSettings
     {
         float menuScale{1.25F};
+        float menuLeft{48.0F};
+        float menuTop{28.0F};
         bool animations{true};
         int toggleKey{0x73}; // VK_F4 without a Windows dependency.
+        std::string theme{"Default"};
+        std::string banner;
+        std::string font;
     };
 
     struct SettingsSnapshot

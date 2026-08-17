@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace Sick::Backend
 {
@@ -94,5 +96,55 @@ namespace Sick::Backend
 
         std::uint32_t version{CurrentVersion};
         PlayerFeatureProfile player;
+    };
+
+    struct AssetEntry
+    {
+        std::string name;
+        std::string path;
+    };
+
+    struct ThemePalette
+    {
+        std::uint32_t border{0x23324DFF};
+        std::uint32_t header{0x000732FF};
+        std::uint32_t headerBand{0x000B46FF};
+        std::uint32_t title{0x020409FF};
+        std::uint32_t body{0x070D16FF};
+        std::uint32_t footer{0x020409FF};
+        std::uint32_t selected{0xF6F6F6FF};
+        std::uint32_t text{0xF4F4F6FF};
+        std::uint32_t selectedText{0x101216FF};
+        std::uint32_t disabledText{0x747A84FF};
+        std::uint32_t accent{0xE20052FF};
+        std::uint32_t inactiveToggle{0x424854FF};
+        std::uint32_t logoCyan{0x29D6FFFF};
+        std::uint32_t logoMagenta{0xE200C6FF};
+        std::uint32_t logoShadow{0x1C0850FF};
+    };
+
+    struct ThemeEntry
+    {
+        AssetEntry asset;
+        ThemePalette palette;
+    };
+
+    struct AssetCatalogSnapshot
+    {
+        std::uint64_t generation{};
+        std::vector<ThemeEntry> themes;
+        std::vector<AssetEntry> images;
+        std::vector<AssetEntry> fonts;
+        std::vector<AssetEntry> scripts;
+    };
+
+    struct MenuPreferences
+    {
+        float scale{1.25F};
+        float left{48.0F};
+        float top{28.0F};
+        std::string theme{"Default"};
+        std::string banner;
+        std::string font;
     };
 }

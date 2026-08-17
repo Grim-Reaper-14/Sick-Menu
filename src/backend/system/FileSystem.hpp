@@ -18,6 +18,8 @@ namespace Sick::Backend::System
         Logs,
         Configs,
         Themes,
+        Images,
+        Fonts,
         Scripts,
         Cache,
         Temp,
@@ -69,6 +71,8 @@ namespace Sick::Backend::System
         [[nodiscard]] const std::filesystem::path& Logs() const noexcept { return m_Logs; }
         [[nodiscard]] const std::filesystem::path& Configs() const noexcept { return m_Configs; }
         [[nodiscard]] const std::filesystem::path& Themes() const noexcept { return m_Themes; }
+        [[nodiscard]] const std::filesystem::path& Images() const noexcept { return m_Images; }
+        [[nodiscard]] const std::filesystem::path& Fonts() const noexcept { return m_Fonts; }
         [[nodiscard]] const std::filesystem::path& Scripts() const noexcept { return m_Scripts; }
         [[nodiscard]] const std::filesystem::path& Cache() const noexcept { return m_Cache; }
         [[nodiscard]] const std::filesystem::path& Temp() const noexcept { return m_Temp; }
@@ -90,6 +94,8 @@ namespace Sick::Backend::System
         std::filesystem::path m_Logs;
         std::filesystem::path m_Configs;
         std::filesystem::path m_Themes;
+        std::filesystem::path m_Images;
+        std::filesystem::path m_Fonts;
         std::filesystem::path m_Scripts;
         std::filesystem::path m_Cache;
         std::filesystem::path m_Temp;

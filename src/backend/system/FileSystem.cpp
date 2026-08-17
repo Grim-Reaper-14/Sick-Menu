@@ -28,6 +28,8 @@ namespace Sick::Backend::System
         m_Logs = m_Root / "logs";
         m_Configs = m_Root / "configs";
         m_Themes = m_Root / "themes";
+        m_Images = m_Root / "images";
+        m_Fonts = m_Root / "fonts";
         m_Scripts = m_Root / "scripts";
         m_Cache = m_Root / "cache";
         m_Temp = m_Root / "temp";
@@ -38,7 +40,8 @@ namespace Sick::Backend::System
         m_SettingsFile = m_Root / "settings.cfg";
 
         const std::array directories{
-            m_Root, m_Logs, m_Configs, m_Themes, m_Scripts, m_Cache, m_Temp, m_Crashes};
+            m_Root, m_Logs, m_Configs, m_Themes, m_Images, m_Fonts,
+            m_Scripts, m_Cache, m_Temp, m_Crashes};
         for (const auto& directory : directories)
         {
             error.clear();
@@ -76,7 +79,9 @@ namespace Sick::Backend::System
                 m_Failures.fetch_add(1, std::memory_order_relaxed);
                 return std::nullopt;
             }
-            std::string contents(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+            std::string contents{
+                std::istreambuf_iterator<char>{input},
+                std::istreambuf_iterator<char>{}};
             if (!input.good() && !input.eof())
             {
                 m_Failures.fetch_add(1, std::memory_order_relaxed);
@@ -280,6 +285,8 @@ namespace Sick::Backend::System
         case FileArea::Logs: return m_Logs;
         case FileArea::Configs: return m_Configs;
         case FileArea::Themes: return m_Themes;
+        case FileArea::Images: return m_Images;
+        case FileArea::Fonts: return m_Fonts;
         case FileArea::Scripts: return m_Scripts;
         case FileArea::Cache: return m_Cache;
         case FileArea::Temp: return m_Temp;

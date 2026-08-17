@@ -2,6 +2,8 @@
 
 #include "ui/menu/SickMenu.hpp"
 
+#include <cstdint>
+
 namespace Sick::Frontend
 {
     class FrontendCore final
@@ -9,8 +11,8 @@ namespace Sick::Frontend
     public:
         FrontendCore();
 
-        // Pulls desired backend state into frontend-owned view state without
-        // invoking menu callbacks.
+        // Pulls desired backend state and background-owned asset metadata into
+        // frontend view state without invoking GTA natives or filesystem I/O.
         void Tick() noexcept;
 
         [[nodiscard]] Ui::SickMenu& Menu() noexcept
@@ -22,5 +24,7 @@ namespace Sick::Frontend
 
     private:
         Ui::SickMenu m_Menu;
+        std::uint64_t m_AssetGeneration{};
+        bool m_PreferencesLoaded{};
     };
 }

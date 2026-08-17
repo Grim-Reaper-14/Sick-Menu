@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.2)
-project(SickMenu VERSION 0.6.0 LANGUAGES CXX)
+project(SickMenu VERSION 0.7.0 LANGUAGES CXX)
 
 include(FetchContent)
 
@@ -17,6 +17,7 @@ add_library(sick_native STATIC
     src/backend/calls/GameCallHub.cpp
     src/backend/features/FeatureManager.cpp
     src/backend/features/PlayerFeatures.cpp
+    src/backend/system/AssetCatalog.cpp
     src/backend/system/BackgroundCore.cpp
     src/backend/system/ConfigManager.cpp
     src/backend/system/FileSystem.cpp
@@ -114,6 +115,8 @@ if(SICK_MENU_BUILD_DLL)
         d3d12
         dxgi
         user32
+        ole32
+        windowscodecs
     )
     set_target_properties(SickMenu PROPERTIES
         OUTPUT_NAME "SickMenu"

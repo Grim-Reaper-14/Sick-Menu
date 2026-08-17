@@ -16,12 +16,12 @@ namespace Sick::Ui
 {
     struct ImGuiMenuKeys
     {
-        ImGuiKey toggle{ImGuiKey_Insert};
-        ImGuiKey up{ImGuiKey_UpArrow};
-        ImGuiKey down{ImGuiKey_DownArrow};
-        ImGuiKey left{ImGuiKey_LeftArrow};
-        ImGuiKey right{ImGuiKey_RightArrow};
-        ImGuiKey select{ImGuiKey_Enter};
+        ImGuiKey toggle{ImGuiKey_F4};
+        ImGuiKey up{ImGuiKey_Keypad8};
+        ImGuiKey down{ImGuiKey_Keypad2};
+        ImGuiKey left{ImGuiKey_Keypad4};
+        ImGuiKey right{ImGuiKey_Keypad6};
+        ImGuiKey select{ImGuiKey_Keypad5};
         ImGuiKey back{ImGuiKey_Backspace};
     };
 
@@ -34,10 +34,8 @@ namespace Sick::Ui
         {
             if (ImGui::IsKeyPressed(keys.toggle, false))
                 controller.Handle(MenuInput::Toggle);
-
             if (!controller.IsOpen())
                 return;
-
             if (ImGui::IsKeyPressed(keys.up))
                 controller.Handle(MenuInput::Up);
             if (ImGui::IsKeyPressed(keys.down))
@@ -50,6 +48,28 @@ namespace Sick::Ui
                 controller.Handle(MenuInput::Select);
             if (ImGui::IsKeyPressed(keys.back, false))
                 controller.Handle(MenuInput::Back);
+        }
+
+        static void PollKeyboard(
+            SickMenu& menu,
+            const ImGuiMenuKeys& keys = {})
+        {
+            if (ImGui::IsKeyPressed(keys.toggle, false))
+                menu.Handle(MenuInput::Toggle);
+            if (!menu.Controller().IsOpen())
+                return;
+            if (ImGui::IsKeyPressed(keys.up))
+                menu.Handle(MenuInput::Up);
+            if (ImGui::IsKeyPressed(keys.down))
+                menu.Handle(MenuInput::Down);
+            if (ImGui::IsKeyPressed(keys.left))
+                menu.Handle(MenuInput::Left);
+            if (ImGui::IsKeyPressed(keys.right))
+                menu.Handle(MenuInput::Right);
+            if (ImGui::IsKeyPressed(keys.select, false))
+                menu.Handle(MenuInput::Select);
+            if (ImGui::IsKeyPressed(keys.back, false))
+                menu.Handle(MenuInput::Back);
         }
 
         static void Submit(
@@ -80,20 +100,11 @@ namespace Sick::Ui
                         command.text.c_str());
                     float x = command.bounds.left;
                     if (command.textAlign == MenuTextAlign::Center)
-                    {
                         x = (command.bounds.left + command.bounds.right - textSize.x) * 0.5F;
-                    }
                     else if (command.textAlign == MenuTextAlign::Right)
-                    {
                         x = command.bounds.right - textSize.x;
-                    }
                     const float y = (command.bounds.top + command.bounds.bottom - textSize.y) * 0.5F;
-                    target->AddText(
-                        font,
-                        command.fontSize,
-                        {x, y},
-                        color,
-                        command.text.c_str());
+                    target->AddText(font, command.fontSize, {x, y}, color, command.text.c_str());
                     break;
                 }
                 case MenuDrawCommandKind::FilledCircle:
@@ -125,7 +136,7 @@ namespace Sick::Ui
             ImDrawList* target = nullptr,
             ImFont* font = nullptr)
         {
-            PollKeyboard(menu.Controller(), keys);
+            PollKeyboard(menu, keys);
             const auto displaySize = ImGui::GetIO().DisplaySize;
             Submit(menu.Draw({displaySize.x, displaySize.y}), target, font);
         }

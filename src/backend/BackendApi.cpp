@@ -4,6 +4,8 @@
 #include "backend/system/LoggerApi.hpp"
 #include "game/scripts/ScriptFunctionCatalog.hpp"
 
+#include <utility>
+
 namespace Sick::Backend
 {
     BackendApi& BackendApi::Get() noexcept
@@ -25,6 +27,46 @@ namespace Sick::Backend
     bool BackendApi::LoadProfile(std::string_view name)
     {
         return BackendCore::Get().LoadProfile(name);
+    }
+
+    bool BackendApi::SaveConfiguration()
+    {
+        return BackendCore::Get().SaveConfiguration();
+    }
+
+    AssetCatalogSnapshot BackendApi::Assets() const
+    {
+        return BackendCore::Get().Assets();
+    }
+
+    std::uint64_t BackendApi::AssetGeneration() const noexcept
+    {
+        return BackendCore::Get().AssetGeneration();
+    }
+
+    bool BackendApi::RefreshAssets()
+    {
+        return BackendCore::Get().RefreshAssets();
+    }
+
+    MenuPreferences BackendApi::Preferences() const
+    {
+        return BackendCore::Get().Preferences();
+    }
+
+    void BackendApi::SetPreferences(MenuPreferences preferences) noexcept
+    {
+        BackendCore::Get().SetPreferences(std::move(preferences));
+    }
+
+    void BackendApi::RequestExitGta() noexcept
+    {
+        BackendCore::Get().RequestExitGta();
+    }
+
+    bool BackendApi::ExitGtaRequested() const noexcept
+    {
+        return BackendCore::Get().ExitGtaRequested();
     }
 
     bool BackendApi::RunScriptVmTest()

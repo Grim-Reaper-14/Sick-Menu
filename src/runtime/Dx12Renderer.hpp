@@ -3,11 +3,16 @@
 #include "frontend/FrontendCore.hpp"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 #include <windows.h>
 #include <wrl/client.h>
 #include <d3d12.h>
 #include <dxgi1_4.h>
+
+struct ImFont;
+struct ID3D12CommandQueue;
+struct IDXGISwapChain;
 
 namespace Sick::Runtime
 {
@@ -36,6 +41,10 @@ namespace Sick::Runtime
         void WaitForFrame(Frame& frame);
         void WaitForGpu();
         void PollKeyboardFallback();
+        void ApplyMenuAssets(Ui::SickMenu& menu);
+        void ApplyFont(Ui::SickMenu& menu, const std::string& path);
+        bool LoadBannerTexture(Ui::SickMenu& menu, const std::string& path);
+        void ClearBannerTexture(Ui::SickMenu& menu);
 
         HWND m_Window{};
         bool m_Ready{};
@@ -46,10 +55,16 @@ namespace Sick::Runtime
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_CommandList;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_RtvHeap;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SrvHeap;
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_BannerTexture;
         Microsoft::WRL::ComPtr<ID3D12Fence> m_Fence;
         HANDLE m_FenceEvent{};
         std::uint64_t m_NextFenceValue{1};
+        std::uint64_t m_AppliedAssetGeneration{};
+        UINT m_SrvDescriptorSize{};
         DXGI_FORMAT m_Format{DXGI_FORMAT_R8G8B8A8_UNORM};
         std::vector<Frame> m_Frames;
+        ImFont* m_MenuFont{};
+        std::string m_AppliedBannerPath;
+        std::string m_AppliedFontPath;
     };
 }

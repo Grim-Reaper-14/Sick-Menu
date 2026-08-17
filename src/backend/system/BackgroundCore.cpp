@@ -25,8 +25,15 @@ namespace Sick::Backend::System
             m_Io.Stop();
             return false;
         }
+        if (!m_Assets.Initialize(m_Io, m_Files))
+        {
+            m_Configs.Shutdown();
+            m_Io.Stop();
+            return false;
+        }
         if (!LoggerApi::Get().Initialize(m_Files))
         {
+            m_Assets.Shutdown();
             m_Configs.Shutdown();
             m_Io.Stop();
             return false;
@@ -45,6 +52,7 @@ namespace Sick::Backend::System
             return;
         m_Initialized = false;
 
+        m_Assets.Shutdown();
         m_Configs.Shutdown();
         static_cast<void>(m_Settings.SaveAsync(m_Io, m_Files));
         LoggerApi::Get().Info("background", "BackgroundCore shutting down");

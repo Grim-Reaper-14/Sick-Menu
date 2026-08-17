@@ -1,6 +1,7 @@
 #pragma once
 
 #include "backend/BackendTypes.hpp"
+#include "AssetCatalog.hpp"
 #include "ConfigManager.hpp"
 #include "FileSystem.hpp"
 #include "IoService.hpp"
@@ -22,6 +23,8 @@ namespace Sick::Backend::System
         [[nodiscard]] const SettingsManager& Settings() const noexcept { return m_Settings; }
         [[nodiscard]] ConfigManager& Configs() noexcept { return m_Configs; }
         [[nodiscard]] const ConfigManager& Configs() const noexcept { return m_Configs; }
+        [[nodiscard]] AssetCatalog& Assets() noexcept { return m_Assets; }
+        [[nodiscard]] const AssetCatalog& Assets() const noexcept { return m_Assets; }
         [[nodiscard]] IoService& Io() noexcept { return m_Io; }
         [[nodiscard]] const IoService& Io() const noexcept { return m_Io; }
         [[nodiscard]] BackgroundSnapshot Snapshot() const noexcept;
@@ -31,6 +34,7 @@ namespace Sick::Backend::System
         SettingsManager m_Settings;
         IoService m_Io;
         ConfigManager m_Configs;
+        AssetCatalog m_Assets;
         bool m_Initialized{};
     };
 }

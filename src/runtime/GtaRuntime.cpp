@@ -2,6 +2,7 @@
 
 #include "PatternScanner.hpp"
 #include "RuntimeLog.hpp"
+#include "backend/BackendApi.hpp"
 #include "game/enhanced/EnhancedGame.hpp"
 #include "game/enhanced/EnhancedScriptHost.hpp"
 #include "game/natives/NativeContext.hpp"
@@ -233,13 +234,21 @@ namespace Sick::Runtime
             Shutdown();
             return false;
         }
-        Log::Write("DLL initialized; press F4 for the menu and End to unload");
+        Log::Write("DLL initialized; F4 opens the menu and End unloads the DLL");
         return true;
     }
 
     HRESULT __stdcall GtaRuntime::PresentHook(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags)
     {
         auto* runtime = s_Instance;
+        if (runtime && !runtime->StopRequested() && Backend::BackendApi::Get().ExitGtaRequested())
+        {
+            Log::Write("Exit GTA confirmed from menu; posting WM_CLOSE");
+            if (runtime->m_Window && IsWindow(runtime->m_Window))
+                PostMessageW(runtime->m_Window, WM_CLOSE, 0, 0);
+            runtime->RequestStop();
+        }
+
         if (runtime && !runtime->StopRequested())
         {
             std::scoped_lock lock(runtime->m_RenderMutex);

@@ -98,6 +98,7 @@ namespace Sick::Ui
         float referenceHeight{1080.0F};
         float left{48.0F};
         float top{28.0F};
+        float uiScale{1.25F};
         float width{588.0F};
         float border{9.0F};
         float headerHeight{131.0F};
@@ -108,7 +109,7 @@ namespace Sick::Ui
         float titleFontSize{28.0F};
         float optionFontSize{25.0F};
         float brandFontSize{15.0F};
-        std::size_t maxVisibleRows{8};
+        std::size_t maxVisibleRows{11};
 
         MenuColor borderColor{35, 50, 77, 255};
         MenuColor headerColor{0, 7, 50, 255};

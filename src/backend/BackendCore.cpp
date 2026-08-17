@@ -38,8 +38,10 @@ namespace Sick::Backend
         m_MaxGameJobsPerTick = std::clamp<std::size_t>(settings.maxGameJobsPerTick, 1, 64);
         m_MaxFiberResumesPerTick = std::clamp<std::size_t>(settings.maxFiberResumesPerTick, 1, 32);
         m_MaxBackendMicros = std::clamp<std::uint64_t>(settings.maxBackendMicros, 50, 2000);
+        m_ExitGtaRequested.store(false, std::memory_order_release);
 
         m_Initialized.store(true, std::memory_order_release);
+        static_cast<void>(m_Background.Configs().Load("default"));
         System::LoggerApi::Get().Info("backend", "BackendCore initialized");
         return true;
     }
@@ -135,6 +137,53 @@ namespace Sick::Backend
     bool BackendCore::LoadProfile(std::string_view name)
     {
         return m_Background.Configs().Load(name);
+    }
+
+    bool BackendCore::SaveConfiguration()
+    {
+        const bool profileQueued = SaveProfile("default");
+        const bool settingsQueued = m_Background.Settings().SaveAsync(m_Background.Io(), m_Background.Files());
+        return profileQueued && settingsQueued;
+    }
+
+    AssetCatalogSnapshot BackendCore::Assets() const
+    {
+        return m_Background.Assets().Snapshot();
+    }
+
+    std::uint64_t BackendCore::AssetGeneration() const noexcept
+    {
+        return m_Background.Assets().Generation();
+    }
+
+    bool BackendCore::RefreshAssets()
+    {
+        return m_Background.Assets().Refresh();
+    }
+
+    MenuPreferences BackendCore::Preferences() const
+    {
+        const auto frontend = m_Background.Settings().Snapshot().frontend;
+        return {
+            .scale = frontend.menuScale,
+            .left = frontend.menuLeft,
+            .top = frontend.menuTop,
+            .theme = frontend.theme,
+            .banner = frontend.banner,
+            .font = frontend.font,
+        };
+    }
+
+    void BackendCore::SetPreferences(MenuPreferences preferences) noexcept
+    {
+        auto settings = m_Background.Settings().Snapshot().frontend;
+        settings.menuScale = std::clamp(preferences.scale, 0.5F, 2.5F);
+        settings.menuLeft = std::clamp(preferences.left, -1920.0F, 3840.0F);
+        settings.menuTop = std::clamp(preferences.top, -1080.0F, 2160.0F);
+        settings.theme = std::move(preferences.theme);
+        settings.banner = std::move(preferences.banner);
+        settings.font = std::move(preferences.font);
+        m_Background.Settings().SetFrontend(std::move(settings));
     }
 
     BackendSnapshot BackendCore::Snapshot() const noexcept

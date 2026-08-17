@@ -103,7 +103,8 @@ namespace Sick::Ui
 
         const float widthScale = viewport.width / std::max(m_Style.referenceWidth, 1.0F);
         const float heightScale = viewport.height / std::max(m_Style.referenceHeight, 1.0F);
-        const float scale = std::max(std::min(widthScale, heightScale), 0.35F);
+        const float viewportScale = std::max(std::min(widthScale, heightScale), 0.35F);
+        const float scale = viewportScale * std::clamp(m_Style.uiScale, 0.5F, 2.5F);
         const auto scaled = [scale](float value) { return value * scale; };
 
         const auto& options = page->Options();
@@ -114,8 +115,8 @@ namespace Sick::Ui
             std::min(remaining, controller.VisibleRows()));
 
         const float border = scaled(m_Style.border);
-        const float innerLeft = scaled(m_Style.left) + border;
-        const float innerTop = scaled(m_Style.top) + border;
+        const float innerLeft = m_Style.left * viewportScale + border;
+        const float innerTop = m_Style.top * viewportScale + border;
         const float innerWidth = scaled(m_Style.width);
         const float headerHeight = scaled(m_Style.headerHeight);
         const float titleHeight = scaled(m_Style.titleHeight);
