@@ -14,5 +14,5 @@ namespace Sick::Ui::MenuSettings
         controls.AddLabel("Numpad 6 - Right");
         controls.AddLabel("Numpad 5 - Select");
         controls.AddLabel("Numpad 0 - Back");
-            }
+    }
 }
