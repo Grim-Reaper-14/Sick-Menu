@@ -81,7 +81,7 @@ namespace Sick::Backend
         constexpr Sick::Game::Natives::NativeHash SetVehicleWheelTypeHash = 0x487EB21CC7295BA1ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleModColor1Hash = 0x43FEB945EE7F85B8ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleModColor2Hash = 0x816562BADFDEC83EULL;
-        constexpr Sick::Game::Natives::NativeHash SetVehicleColoursHash = 0x4F1D4BE3A7F24601ULL;
+        constexpr Sick::Game::Natives::NativeHash SetVehicleColoursHash = 0xD133EF7430EDCD09ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleExtraColoursHash = 0x2036F561ADD12E33ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleInteriorColorHash = 0xF40DD601A65F7F19ULL;
         constexpr Sick::Game::Natives::NativeHash SetVehicleDashboardColorHash = 0x6089CDF6A57F326CULL;
