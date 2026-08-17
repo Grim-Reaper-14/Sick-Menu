@@ -277,22 +277,68 @@ namespace Sick::Ui
 
             if (option.Kind() == MenuOptionKind::Toggle)
             {
-                const MenuPoint center{
-                    rowBounds.right - padding,
-                    (rowBounds.top + rowBounds.bottom) * 0.5F};
+                const bool enabled = option.Enabled();
+                const bool active = option.ToggleValue();
+                const float trackRadius = scaled(8.0F);
+                const float trackWidth = scaled(38.0F);
+                const float trackRight = rowBounds.right - padding;
+                const float trackLeft = trackRight - trackWidth;
+                const float centerY = (rowBounds.top + rowBounds.bottom) * 0.5F;
+                const MenuColor trackColor = enabled && active
+                    ? m_Style.accentColor
+                    : m_Style.inactiveToggleColor;
+                const MenuColor stateTextColor = !enabled
+                    ? m_Style.disabledTextColor
+                    : (active ? m_Style.accentColor : m_Style.disabledTextColor);
+
+                const MenuRect toggleTextBounds{
+                    optionTextBounds.left,
+                    optionTextBounds.top,
+                    trackLeft - scaled(10.0F),
+                    optionTextBounds.bottom};
+                drawList.AddText(
+                    toggleTextBounds,
+                    active ? "ON" : "OFF",
+                    stateTextColor,
+                    scaled(m_Style.optionFontSize * 0.78F),
+                    MenuTextAlign::Right);
+
+                drawList.AddFilledRect(
+                    {trackLeft + trackRadius, centerY - trackRadius,
+                     trackRight - trackRadius, centerY + trackRadius},
+                    trackColor);
                 drawList.AddFilledCircle(
-                    center,
-                    scaled(7.0F),
-                    option.ToggleValue() ? m_Style.accentColor : m_Style.inactiveToggleColor);
+                    {trackLeft + trackRadius, centerY},
+                    trackRadius,
+                    trackColor);
+                drawList.AddFilledCircle(
+                    {trackRight - trackRadius, centerY},
+                    trackRadius,
+                    trackColor);
+
+                const float knobRadius = scaled(6.0F);
+                const float knobX = active
+                    ? trackRight - trackRadius
+                    : trackLeft + trackRadius;
+                drawList.AddFilledCircle(
+                    {knobX, centerY},
+                    knobRadius,
+                    m_Style.selectedColor);
             }
             else
             {
                 const auto value = option.ValueText();
                 if (!value.empty())
                 {
+                    const bool adjustable =
+                        option.Kind() == MenuOptionKind::Integer ||
+                        option.Kind() == MenuOptionKind::Choice;
+                    const auto displayValue = adjustable
+                        ? std::string{"< "} + value + " >"
+                        : value;
                     drawList.AddText(
                         optionTextBounds,
-                        value,
+                        displayValue,
                         textColor,
                         scaled(m_Style.optionFontSize),
                         MenuTextAlign::Right);

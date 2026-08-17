@@ -147,9 +147,15 @@ namespace
         CHECK(menu.Controller().CurrentPage()->Title() == "PLAYER");
         CHECK(menu.Controller().SelectionCounter().total == 15);
 
+        const auto playerDraw = menu.Draw({1920.0F, 1080.0F});
+        CHECK(HasText(playerDraw, "OFF", Sick::Ui::MenuTextAlign::Right));
+        CHECK(HasText(playerDraw, "< 0 >", Sick::Ui::MenuTextAlign::Right));
+        CHECK(CountKind(playerDraw, Sick::Ui::MenuDrawCommandKind::FilledCircle) >= 3);
+
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
         CHECK(menu.State().godMode);
         CHECK(godModeCallbacks == 1 && lastGodMode);
+        CHECK(HasText(menu.Draw({1920.0F, 1080.0F}), "ON", Sick::Ui::MenuTextAlign::Right));
 
         CHECK(menu.Controller().SelectOption(1));
         CHECK(menu.Handle(Reaper::UI::MenuInput::Select));
@@ -160,6 +166,7 @@ namespace
         CHECK(menu.Handle(Reaper::UI::MenuInput::Right));
         CHECK(menu.State().wantedLevel == 1);
         CHECK(wantedCallbacks == 1 && lastWanted == 1);
+        CHECK(HasText(menu.Draw({1920.0F, 1080.0F}), "< 1 >", Sick::Ui::MenuTextAlign::Right));
 
         CHECK(menu.Handle(Reaper::UI::MenuInput::Back));
         CHECK(menu.Controller().SelectOption(1));
